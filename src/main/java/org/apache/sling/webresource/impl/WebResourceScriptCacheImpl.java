@@ -61,6 +61,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * Compile Web Resource
      * 
      * @param source
+     * @param extension
      * @return
      * @throws WebResourceCompileException
      */
@@ -70,9 +71,10 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
     /**
      * 
-     * Compiles and creates JavaScript File from CoffeeScript path
+     * Compiles and creates Compiled Web Resource from Web Resource Source path
      * 
      * @param path
+     * @param compiler Selected Web Resource compiler
      * @return
      * @throws WebResourceCompileException
      */
@@ -129,17 +131,17 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * 
      * Convert JCR Script Content to a String
      * 
-     * @param coffeeContent
+     * @param webResourceContent
      * @return
      * @throws PathNotFoundException
      * @throws RepositoryException
      * @throws IOException
      * @throws ValueFormatException
      */
-    protected String getScriptAsString(Node coffeeContent)
+    protected String getScriptAsString(Node webResourceContent)
             throws PathNotFoundException, RepositoryException, IOException,
             ValueFormatException {
-        Property webResourceData = coffeeContent.getProperty(Property.JCR_DATA);
+        Property webResourceData = webResourceContent.getProperty(Property.JCR_DATA);
 
         return IOUtils.toString(webResourceData.getBinary().getStream());
     }
@@ -162,19 +164,14 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Node webResourceContent = webResourceNode.getNode(Property.JCR_CONTENT);
         return webResourceContent;
     }
-
-    /**
-     * 
-     * Implementation of SlingCoffeeScriptCache.String getJavascript(Session
-     * session, String path)
-     * 
-     */
+    
     public String getCompiledScript(Session session, String path)
             throws WebResourceCompileException {
 
         String compiledScriptString = null;
         String relativePath = JCRUtils.convertPathToRelative(path);
-        
+
+        //Determine extension
         int extensionPosition = path.lastIndexOf(".");
         String extension = path.substring(extensionPosition+1);
 
@@ -238,6 +235,12 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         return result;
     }
     
+    /**
+     * 
+     * Bind Compiler Providers
+     * 
+     * @param webResourceCompilerService
+     */
     protected void bindWebResourceCompilerProvider(WebResourceScriptCompiler webResourceCompilerService) {
         synchronized (this.webResourceScriptCompilerList) {
             this.webResourceScriptCompilerList.add(webResourceCompilerService);
@@ -245,6 +248,12 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         }
     }
 
+    /**
+     * 
+     * Unbind Compiler Providers
+     * 
+     * @param webResourceCompilerService
+     */
     protected void unbindWebResourceCompilerProvider(WebResourceScriptCompiler webResourceCompilerService) {
         synchronized (this.webResourceScriptCompilerList) {
             this.webResourceScriptCompilerList.remove(webResourceCompilerService);
@@ -252,6 +261,12 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         }
     }
     
+    /**
+     * 
+     * Return list of available compilers
+     * 
+     * @return
+     */
     private WebResourceScriptCompiler[] getWebResourceCompilerProviders() {
         WebResourceScriptCompiler[] list = this.webResourceScriptCompilers;
 

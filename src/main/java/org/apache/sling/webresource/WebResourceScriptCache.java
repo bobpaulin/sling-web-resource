@@ -21,7 +21,7 @@ public interface WebResourceScriptCache {
      * 
      * Returns Cache of compiled Web Resources.
      * If it's out of date or does not yet exists 
-     * the web resouce is compiled and saved to path
+     * the web resource is compiled and saved to path
      * specified in complier service
      * 
      * @param session JCRSession
