@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<taglib xmlns="http://java.sun.com/xml/ns/javaee" version="2.1">
+    <tlib-version>1.0.0</tlib-version>
+    <short-name>Sling Web Resource TagLib</short-name>
+    <uri>http://sling.apache.org/taglibs/sling/webresource/1.0.0</uri>
+    <tag>
+        <name>webresource</name>
+        <tag-class>org.apache.sling.webresource.taglib.WebResourceTag</tag-class>
+        <body-content>empty</body-content>
+        <attribute>
+        	<name>path</name>
+        	<type>java.lang.String</type>
+        	<required>true</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+        	<name>wrapWithTag</name>
+        	<type>java.lang.String</type>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+        	<name>shouldThrowException</name>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+    </tag>
+</taglib>
