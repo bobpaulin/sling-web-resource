@@ -7,7 +7,7 @@ import org.apache.sling.webresource.exception.WebResourceCompileException;
  * Service to compile Web Resources.
  * 
  * @author bpaulin
- *
+ * 
  */
 
 public interface WebResourceScriptCompiler {
@@ -18,8 +18,9 @@ public interface WebResourceScriptCompiler {
      * @param webResourceScript
      * @return
      */
-    public String compile(String webResourceScript) throws WebResourceCompileException;
-    
+    public String compile(String webResourceScript)
+            throws WebResourceCompileException;
+
     /**
      * 
      * The path where compiled resources will be cached
@@ -27,8 +28,7 @@ public interface WebResourceScriptCompiler {
      * @return path to the cache root
      */
     public String getCacheRoot();
-    
-    
+
     /**
      * 
      * Evaluates whether a compiler can compile a given extension

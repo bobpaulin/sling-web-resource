@@ -47,9 +47,9 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
     @Reference
     private ResourceResolverFactory resourceResolverFactory;
-    
+
     private List<WebResourceScriptCompiler> webResourceScriptCompilerList = new ArrayList<WebResourceScriptCompiler>();
-    
+
     private WebResourceScriptCompiler[] webResourceScriptCompilers;
 
     public void activate(final ComponentContext context) {
@@ -65,7 +65,8 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * @return
      * @throws WebResourceCompileException
      */
-    protected String compile(String source, String extension) throws WebResourceCompileException {
+    protected String compile(String source, String extension)
+            throws WebResourceCompileException {
         return getWebResourceCompilerForExtention(extension).compile(source);
     }
 
@@ -74,11 +75,13 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * Compiles and creates Compiled Web Resource from Web Resource Source path
      * 
      * @param path
-     * @param compiler Selected Web Resource compiler
+     * @param compiler
+     *            Selected Web Resource compiler
      * @return
      * @throws WebResourceCompileException
      */
-    protected String compileWebResource(String path, WebResourceScriptCompiler compiler)
+    protected String compileWebResource(String path,
+            WebResourceScriptCompiler compiler)
             throws WebResourceCompileException {
 
         ResourceResolver resolver = null;
@@ -88,7 +91,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
                     .getAdministrativeResourceResolver(null);
             Session session = resolver.adaptTo(Session.class);
             Node rootNode = session.getRootNode();
-            
+
             Node webResourceScriptNode = getScriptContentNode(path, rootNode);
             result = compiler.compile(getScriptAsString(webResourceScriptNode));
 
@@ -98,11 +101,10 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             compiledNode.setPrimaryType("nt:file");
             Node compiledContent = null;
             if (compiledNode.hasNode(Property.JCR_CONTENT)) {
-                compiledContent = compiledNode
-                        .getNode(Property.JCR_CONTENT);
+                compiledContent = compiledNode.getNode(Property.JCR_CONTENT);
             } else {
-                compiledContent = compiledNode.addNode(
-                        Property.JCR_CONTENT, "nt:resource");
+                compiledContent = compiledNode.addNode(Property.JCR_CONTENT,
+                        "nt:resource");
             }
 
             ValueFactory valueFactory = session.getValueFactory();
@@ -141,7 +143,8 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
     protected String getScriptAsString(Node webResourceContent)
             throws PathNotFoundException, RepositoryException, IOException,
             ValueFormatException {
-        Property webResourceData = webResourceContent.getProperty(Property.JCR_DATA);
+        Property webResourceData = webResourceContent
+                .getProperty(Property.JCR_DATA);
 
         return IOUtils.toString(webResourceData.getBinary().getStream());
     }
@@ -164,26 +167,27 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Node webResourceContent = webResourceNode.getNode(Property.JCR_CONTENT);
         return webResourceContent;
     }
-    
+
     public String getCompiledScript(Session session, String path)
             throws WebResourceCompileException {
 
         String compiledScriptString = null;
         String relativePath = JCRUtils.convertPathToRelative(path);
 
-        //Determine extension
+        // Determine extension
         int extensionPosition = path.lastIndexOf(".");
-        String extension = path.substring(extensionPosition+1);
+        String extension = path.substring(extensionPosition + 1);
 
         WebResourceScriptCompiler compiler = getWebResourceCompilerForExtention(extension);
-        
-        String cachedCompiledScriptPath = compiler.getCacheRoot() + relativePath;
+
+        String cachedCompiledScriptPath = compiler.getCacheRoot()
+                + relativePath;
         try {
             if (session.nodeExists(cachedCompiledScriptPath)) {
                 Node compiledScriptContent = getScriptContentNode(
                         cachedCompiledScriptPath, session.getRootNode());
-                Node webResourceScriptContent = getScriptContentNode(relativePath,
-                        session.getRootNode());
+                Node webResourceScriptContent = getScriptContentNode(
+                        relativePath, session.getRootNode());
                 Property compiledScriptLastModified = compiledScriptContent
                         .getProperty(Property.JCR_LAST_MODIFIED);
                 Property webResouceScriptLastModified = webResourceScriptContent
@@ -197,7 +201,8 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
             // Script is either not compiled or out of date.
             if (compiledScriptString == null) {
-                compiledScriptString = compileWebResource(relativePath, compiler);
+                compiledScriptString = compileWebResource(relativePath,
+                        compiler);
             }
         } catch (Exception e) {
             throw new WebResourceCompileException(e);
@@ -206,42 +211,41 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         return compiledScriptString;
 
     }
-    
-    public WebResourceScriptCompiler getWebResourceCompilerForExtention(String extention) throws WebResourceCompileException
-    {
+
+    public WebResourceScriptCompiler getWebResourceCompilerForExtention(
+            String extention) throws WebResourceCompileException {
         WebResourceScriptCompiler result = null;
-        
+
         WebResourceScriptCompiler[] serviceProviders = getWebResourceCompilerProviders();
-        
-        if(serviceProviders != null)
-        {
-            for(WebResourceScriptCompiler currentService: serviceProviders)
-            {
-                //Select the first service that can compile a web resource with this 
-                //extension
-                if(currentService.canCompileExtension(extention))
-                {
+
+        if (serviceProviders != null) {
+            for (WebResourceScriptCompiler currentService : serviceProviders) {
+                // Select the first service that can compile a web resource with
+                // this
+                // extension
+                if (currentService.canCompileExtension(extention)) {
                     result = currentService;
                     break;
                 }
             }
         }
-        
-        if(result == null)
-        {
-            throw new WebResourceCompileException("No Compiler Found for this Web Resource Extension");
+
+        if (result == null) {
+            throw new WebResourceCompileException(
+                    "No Compiler Found for this Web Resource Extension");
         }
-        
+
         return result;
     }
-    
+
     /**
      * 
      * Bind Compiler Providers
      * 
      * @param webResourceCompilerService
      */
-    protected void bindWebResourceCompilerProvider(WebResourceScriptCompiler webResourceCompilerService) {
+    protected void bindWebResourceCompilerProvider(
+            WebResourceScriptCompiler webResourceCompilerService) {
         synchronized (this.webResourceScriptCompilerList) {
             this.webResourceScriptCompilerList.add(webResourceCompilerService);
             this.webResourceScriptCompilers = null;
@@ -254,13 +258,15 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * 
      * @param webResourceCompilerService
      */
-    protected void unbindWebResourceCompilerProvider(WebResourceScriptCompiler webResourceCompilerService) {
+    protected void unbindWebResourceCompilerProvider(
+            WebResourceScriptCompiler webResourceCompilerService) {
         synchronized (this.webResourceScriptCompilerList) {
-            this.webResourceScriptCompilerList.remove(webResourceCompilerService);
+            this.webResourceScriptCompilerList
+                    .remove(webResourceCompilerService);
             this.webResourceScriptCompilers = null;
         }
     }
-    
+
     /**
      * 
      * Return list of available compilers
@@ -272,7 +278,9 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
         if (list == null) {
             synchronized (this.webResourceScriptCompilerList) {
-                this.webResourceScriptCompilers = this.webResourceScriptCompilerList.toArray(new WebResourceScriptCompiler[this.webResourceScriptCompilerList.size()]);
+                this.webResourceScriptCompilers = this.webResourceScriptCompilerList
+                        .toArray(new WebResourceScriptCompiler[this.webResourceScriptCompilerList
+                                .size()]);
                 list = this.webResourceScriptCompilers;
             }
         }
