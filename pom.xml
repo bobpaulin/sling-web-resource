@@ -25,7 +25,6 @@
 			<version>2.1.0</version>
 			<scope>provided</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
@@ -63,11 +62,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>rhino</groupId>
-			<artifactId>js</artifactId>
-			<version>1.7R2</version>
-		</dependency>
-		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.6.4</version>
@@ -84,7 +78,6 @@
 			<version>2.4</version>
 			<scope>test</scope>
 		</dependency>
-            
 		<dependency>
 			<groupId>org.apache.sling</groupId>
 			<artifactId>org.apache.sling.api</artifactId>
@@ -92,9 +85,6 @@
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
-
-
-
 	<build>
 		<plugins>
 			<plugin>
@@ -119,16 +109,6 @@
 					<instructions>
 						<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
 						<Bundle-Description>${project.description}</Bundle-Description>
-						<Import-Package>
-							org.apache.xmlbeans;resolution:=optional,
-							*
-						</Import-Package>
-						<Embed-Dependency>
-							js;inline=true
-						</Embed-Dependency>
-						<Sling-Initial-Content>
-							SLING-INF/system/coffee;overwrite:=true;uninstall:=true;path:=/system/coffee
-						</Sling-Initial-Content>
 					</instructions>
 				</configuration>
 			</plugin>
