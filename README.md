@@ -6,7 +6,7 @@ This project provides an abstraction that allows pluggable web resource compiler
 Compilers should extend the WebResourceScriptCompiler interface then they may use the WebResourceTag as follows:
 
 Just include the following tag library in you JSP
-<%@taglib prefix="webresource" uri="http://sling.apache.org/taglibs/webresource/coffee/1.0.0"%>
+<%@taglib prefix="webresource" uri="http://sling.apache.org/taglibs/sling/webresource/1.0.0"%>
 
 Then add the tag to compile a Web Resource file (such as CoffeeScript) from a specific path
 
