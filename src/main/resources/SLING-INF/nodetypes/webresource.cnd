@@ -1,0 +1,6 @@
+<webresource = 'http://sling.apache.org/sample/webresource/1.0'>
+<nt  = 'http://www.jcp.org/jcr/nt/1.0'>
+<mix = 'http://www.jcp.org/jcr/mix/1.0 '>
+
+[webresource:WebResourceGroup] mixin
+- webresource:name (string)
