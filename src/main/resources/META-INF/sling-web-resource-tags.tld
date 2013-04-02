@@ -11,7 +11,13 @@
         <attribute>
         	<name>path</name>
         	<type>java.lang.String</type>
-        	<required>true</required>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+        	<name>groupName</name>
+        	<type>java.lang.String</type>
+        	<required>false</required>
         	<rtexprvalue>true</rtexprvalue>
         </attribute>
         <attribute>
@@ -22,6 +28,11 @@
         </attribute>
         <attribute>
         	<name>shouldThrowException</name>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+        	<name>shouldInline</name>
         	<required>false</required>
         	<rtexprvalue>true</rtexprvalue>
         </attribute>

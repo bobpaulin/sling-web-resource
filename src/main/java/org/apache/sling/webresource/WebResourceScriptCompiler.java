@@ -1,6 +1,9 @@
 package org.apache.sling.webresource;
 
+import java.io.InputStream;
+
 import org.apache.sling.webresource.exception.WebResourceCompileException;
+import javax.jcr.Node;
 
 /**
  * 
@@ -18,7 +21,17 @@ public interface WebResourceScriptCompiler {
      * @param webResourceScript
      * @return
      */
-    public String compile(String webResourceScript)
+   /* public InputStream compile(String webResourceScript)
+            throws WebResourceCompileException;*/
+    /**
+     * 
+     * Compile a WebResource Stream
+     * 
+     * @param webResourceScript
+     * @return
+     * @throws WebResourceCompileException
+     */
+    public InputStream compile(InputStream webResourceScript)
             throws WebResourceCompileException;
 
     /**
@@ -36,5 +49,5 @@ public interface WebResourceScriptCompiler {
      * @param extention
      * @return
      */
-    public boolean canCompileExtension(String extention);
+    public boolean canCompileNode(Node sourceNode) throws WebResourceCompileException;
 }

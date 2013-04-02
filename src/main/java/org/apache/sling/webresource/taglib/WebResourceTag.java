@@ -14,6 +14,7 @@ import org.apache.sling.api.scripting.SlingScriptHelper;
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 
+import org.apache.commons.io.IOUtils;
 /**
  * 
  * This is a custom tag that renders a compiled web resource based on a path to
@@ -33,8 +34,12 @@ public class WebResourceTag extends TagSupport {
     private WebResourceScriptCache webResourceScriptCache;
 
     private String wrapWithTag;
+    
+    private String groupName;
 
     private boolean shouldThrowException;
+    
+    private boolean shouldInline;
 
     @Override
     public int doStartTag() throws JspException {
@@ -66,13 +71,12 @@ public class WebResourceTag extends TagSupport {
         JspWriter out = null;
         try {
             out = pageContext.getOut();
-            String[] paths = path.split(",");
+            
 
-            for (String currentPath : paths) {
-                String javaScript = webResourceScriptCache.getCompiledScript(
-                        currentNode.getSession(), currentPath);
+            
+                String javaScript = IOUtils.toString(webResourceScriptCache.getCompiledWebResourceGroup(
+                        currentNode.getSession(), groupName));
                 out.write(javaScript);
-            }
 
             if (wrapWithTag != null) {
                 out.write("\n</" + wrapWithTag + ">");
@@ -125,5 +129,17 @@ public class WebResourceTag extends TagSupport {
 
     public void setShouldThrowException(boolean shouldThrowException) {
         this.shouldThrowException = shouldThrowException;
+    }
+    
+    public void setShouldInline(boolean shouldInline) {
+        this.shouldInline = shouldInline;
+    }
+    
+    public boolean shouldInline() {
+        return shouldInline;
+    }
+    
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 }

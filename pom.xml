@@ -109,6 +109,9 @@
 					<instructions>
 						<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
 						<Bundle-Description>${project.description}</Bundle-Description>
+						<Sling-Nodetypes>
+                            SLING-INF/nodetypes/webresource.cnd
+                        </Sling-Nodetypes>
 					</instructions>
 				</configuration>
 			</plugin>

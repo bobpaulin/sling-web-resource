@@ -2,6 +2,8 @@ package org.apache.sling.webresource.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Dictionary;
@@ -15,6 +17,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
+import javax.jcr.NodeIterator;
+import javax.jcr.query.RowIterator;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryResult;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -29,6 +35,7 @@ import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
+import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
 import org.apache.sling.webresource.util.JCRUtils;
 import org.osgi.service.component.ComponentContext;
 
@@ -58,20 +65,6 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
     /**
      * 
-     * Compile Web Resource
-     * 
-     * @param source
-     * @param extension
-     * @return
-     * @throws WebResourceCompileException
-     */
-    protected String compile(String source, String extension)
-            throws WebResourceCompileException {
-        return getWebResourceCompilerForExtention(extension).compile(source);
-    }
-
-    /**
-     * 
      * Compiles and creates Compiled Web Resource from Web Resource Source path
      * 
      * @param path
@@ -80,12 +73,12 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * @return
      * @throws WebResourceCompileException
      */
-    protected String compileWebResource(String path,
+    protected InputStream compileWebResource(String path,
             WebResourceScriptCompiler compiler)
             throws WebResourceCompileException {
 
         ResourceResolver resolver = null;
-        String result = null;
+        InputStream result = null;
         try {
             resolver = resourceResolverFactory
                     .getAdministrativeResourceResolver(null);
@@ -93,7 +86,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             Node rootNode = session.getRootNode();
 
             Node webResourceScriptNode = getScriptContentNode(path, rootNode);
-            result = compiler.compile(getScriptAsString(webResourceScriptNode));
+            result = compiler.compile(getScriptAsStream(webResourceScriptNode));
 
             Node compiledNode = JCRUtils.createNode(rootNode,
                     compiler.getCacheRoot() + path);
@@ -109,8 +102,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
             ValueFactory valueFactory = session.getValueFactory();
             Binary compiledBinary = valueFactory
-                    .createBinary(new ByteArrayInputStream(result
-                            .getBytes("UTF-8")));
+                    .createBinary(result);
 
             compiledContent.setProperty(Property.JCR_DATA, compiledBinary);
             Calendar lastModified = Calendar.getInstance();
@@ -148,6 +140,15 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
         return IOUtils.toString(webResourceData.getBinary().getStream());
     }
+    
+    protected InputStream getScriptAsStream(Node webResourceContent)
+            throws PathNotFoundException, RepositoryException, IOException,
+            ValueFormatException {
+        Property webResourceData = webResourceContent
+                .getProperty(Property.JCR_DATA);
+
+        return webResourceData.getBinary().getStream();
+    }
 
     /**
      * 
@@ -167,18 +168,62 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Node webResourceContent = webResourceNode.getNode(Property.JCR_CONTENT);
         return webResourceContent;
     }
+    
+    public InputStream getCompiledWebResourceGroup(Session session, String webResourceGroupName)
+            throws WebResourceCompileException
+    {
+        InputStream resultSteam = null;
+        try{
+            Query query = session.getWorkspace().getQueryManager().createQuery("SELECT * FROM [nt:file] INNER JOIN [webresource:WebResourceGroup] as webResourceGroupSet ON ISDESCENDANTNODE([nt:file], webResourceGroupSet) WHERE webResourceGroupSet.[webresource:name] = $webResourceName", Query.JCR_SQL2 );
+            
+            query.bindValue("webResourceName", session.getValueFactory().createValue(webResourceGroupName));
+            
+            QueryResult queryResult = query.execute();
+            
+            RowIterator resultList = queryResult.getRows();
+            
+            while(resultList.hasNext())
+            {
+                Node currentResult = resultList.nextRow().getNode("nt:file");
+                    
+        
+                    try
+                    {
+                        InputStream compiledStream = getCompiledScript(session, currentResult.getPath());
+                        
+                        if(resultSteam == null)
+                        {
+                            resultSteam = compiledStream;
+                        }
+                        else
+                        {
+                            resultSteam = new SequenceInputStream(resultSteam, compiledStream);
+                        }
+                    }catch(WebResourceCompilerNotFoundException e){
+                        
+                        System.out.println("Compiler Not Found for Node at Path: " + currentResult.getPath());
+                        
+                    }
+                    
+            }
+               
+        }catch(RepositoryException e)
+        {
+            throw new WebResourceCompileException(e); 
+        }
+              
+        return resultSteam;
+    }
+    
+    
 
-    public String getCompiledScript(Session session, String path)
-            throws WebResourceCompileException {
+    public InputStream getCompiledScript(Session session, String path)
+            throws WebResourceCompileException, WebResourceCompilerNotFoundException {
 
-        String compiledScriptString = null;
+        InputStream result = null;
         String relativePath = JCRUtils.convertPathToRelative(path);
 
-        // Determine extension
-        int extensionPosition = path.lastIndexOf(".");
-        String extension = path.substring(extensionPosition + 1);
-
-        WebResourceScriptCompiler compiler = getWebResourceCompilerForExtention(extension);
+        WebResourceScriptCompiler compiler = getCompilerForPath(session, path);
 
         String cachedCompiledScriptPath = compiler.getCacheRoot()
                 + relativePath;
@@ -195,25 +240,46 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
                 if (compiledScriptLastModified.getDate().after(
                         webResouceScriptLastModified.getDate())) {
-                    compiledScriptString = getScriptAsString(compiledScriptContent);
+                    result = getScriptAsStream(compiledScriptContent);
                 }
             }
 
             // Script is either not compiled or out of date.
-            if (compiledScriptString == null) {
-                compiledScriptString = compileWebResource(relativePath,
+            if (result == null) {
+                result = compileWebResource(relativePath,
                         compiler);
             }
         } catch (Exception e) {
             throw new WebResourceCompileException(e);
         }
 
-        return compiledScriptString;
+        return result;
 
     }
 
-    public WebResourceScriptCompiler getWebResourceCompilerForExtention(
-            String extention) throws WebResourceCompileException {
+    protected WebResourceScriptCompiler getCompilerForPath(Session session, String path)
+            throws WebResourceCompilerNotFoundException, WebResourceCompileException {
+        
+        WebResourceScriptCompiler compiler = null;
+        try{
+            Node sourceNode = session.getNode(path);
+    
+            compiler = getWebResourceCompilerForNode(sourceNode);
+        }catch(RepositoryException e)
+        {
+            throw new WebResourceCompileException(e);
+        }
+        return compiler;
+    }
+    
+    public String getCompiledScriptPath(Session session, String path) throws WebResourceCompileException, WebResourceCompilerNotFoundException {
+        getCompiledScript(session, path);
+        WebResourceScriptCompiler compiler = getCompilerForPath(session, path);
+        return compiler.getCacheRoot() + path;
+    }
+
+    public WebResourceScriptCompiler getWebResourceCompilerForNode(
+            Node sourceNode) throws WebResourceCompileException, WebResourceCompilerNotFoundException {
         WebResourceScriptCompiler result = null;
 
         WebResourceScriptCompiler[] serviceProviders = getWebResourceCompilerProviders();
@@ -223,7 +289,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
                 // Select the first service that can compile a web resource with
                 // this
                 // extension
-                if (currentService.canCompileExtension(extention)) {
+                if (currentService.canCompileNode(sourceNode)) {
                     result = currentService;
                     break;
                 }
@@ -231,7 +297,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         }
 
         if (result == null) {
-            throw new WebResourceCompileException(
+            throw new WebResourceCompilerNotFoundException(
                     "No Compiler Found for this Web Resource Extension");
         }
 

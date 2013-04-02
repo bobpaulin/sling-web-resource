@@ -1,12 +1,15 @@
 package org.apache.sling.webresource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Node;
 
 import org.apache.sling.webresource.exception.WebResourceCompileException;
+import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
 
 /**
  * 
@@ -32,9 +35,32 @@ public interface WebResourceScriptCache {
      * @throws RepositoryException
      * @throws IOException
      */
-    public String getCompiledScript(Session session, String path)
+    public InputStream getCompiledScript(Session session, String path)
+            throws WebResourceCompileException, WebResourceCompilerNotFoundException;
+    
+    /**
+     * 
+     * Get consolidated Web Resources
+     * 
+     * @param session
+     * @param webResourceGroupName
+     * @return
+     * @throws WebResourceCompileException
+     */
+    public InputStream getCompiledWebResourceGroup(Session session, String webResourceGroupName)
             throws WebResourceCompileException;
 
+    /**
+     * 
+     * Returns the Path to the compiled web resource.
+     * 
+     * @param session
+     * @param path
+     * @return
+     * @throws WebResourceCompileException
+     */
+    public String getCompiledScriptPath(Session session, String path)
+            throws WebResourceCompileException, WebResourceCompilerNotFoundException;
     /**
      * 
      * Returns the first web resource compiler that can compile a given file
@@ -44,7 +70,7 @@ public interface WebResourceScriptCache {
      * @return
      * @throws WebResourceCompileException
      */
-    public WebResourceScriptCompiler getWebResourceCompilerForExtention(
-            String extention) throws WebResourceCompileException;
+    public WebResourceScriptCompiler getWebResourceCompilerForNode(
+            Node sourceNode) throws WebResourceCompileException, WebResourceCompilerNotFoundException;
 
 }
