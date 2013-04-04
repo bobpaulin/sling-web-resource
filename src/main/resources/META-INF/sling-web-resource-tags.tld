@@ -9,19 +9,7 @@
         <tag-class>org.apache.sling.webresource.taglib.WebResourceTag</tag-class>
         <body-content>empty</body-content>
         <attribute>
-        	<name>path</name>
-        	<type>java.lang.String</type>
-        	<required>false</required>
-        	<rtexprvalue>true</rtexprvalue>
-        </attribute>
-        <attribute>
         	<name>groupName</name>
-        	<type>java.lang.String</type>
-        	<required>false</required>
-        	<rtexprvalue>true</rtexprvalue>
-        </attribute>
-        <attribute>
-        	<name>wrapWithTag</name>
         	<type>java.lang.String</type>
         	<required>false</required>
         	<rtexprvalue>true</rtexprvalue>

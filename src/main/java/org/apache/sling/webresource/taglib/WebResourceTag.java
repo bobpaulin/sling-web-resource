@@ -1,8 +1,10 @@
 package org.apache.sling.webresource.taglib;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.jcr.Node;
+import javax.jcr.Session;
 import javax.jcr.RepositoryException;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.JspWriter;
@@ -13,6 +15,7 @@ import org.apache.sling.api.scripting.SlingScriptHelper;
 
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
+import org.apache.sling.webresource.util.JCRUtils;
 
 import org.apache.commons.io.IOUtils;
 /**
@@ -32,8 +35,6 @@ public class WebResourceTag extends TagSupport {
     private Node currentNode;
 
     private WebResourceScriptCache webResourceScriptCache;
-
-    private String wrapWithTag;
     
     private String groupName;
 
@@ -43,16 +44,6 @@ public class WebResourceTag extends TagSupport {
 
     @Override
     public int doStartTag() throws JspException {
-
-        JspWriter out = pageContext.getOut();
-
-        try {
-            if (wrapWithTag != null) {
-                out.write("<" + wrapWithTag + ">\n");
-            }
-        } catch (IOException e) {
-            throw new JspException(e);
-        }
 
         return super.doStartTag();
     }
@@ -71,15 +62,45 @@ public class WebResourceTag extends TagSupport {
         JspWriter out = null;
         try {
             out = pageContext.getOut();
+            Session currentSession = currentNode.getSession();
+            List<String> webResourcePath = webResourceScriptCache.getCompiledWebResourceGroupPaths(currentSession, groupName);
             
-
-            
-                String javaScript = IOUtils.toString(webResourceScriptCache.getCompiledWebResourceGroup(
-                        currentNode.getSession(), groupName));
-                out.write(javaScript);
-
-            if (wrapWithTag != null) {
-                out.write("\n</" + wrapWithTag + ">");
+            for(String currentPath:webResourcePath)
+            {
+                StringBuffer scriptBuffer = new StringBuffer();
+                if(currentPath.endsWith(".css"))
+                {
+                    scriptBuffer.append("<link rel=\"stylesheet\" ");
+                    if(shouldInline)
+                    {
+                        scriptBuffer.append(">");
+                        copyCompiledNodeToBuffer(currentSession, currentPath,
+                                scriptBuffer);
+                        scriptBuffer.append("</link>");
+                    }
+                    else
+                    {
+                        scriptBuffer.append("href=\""+ currentPath + "\"/>");
+                    }
+                    
+                }
+                else
+                {
+                    scriptBuffer.append("<script");
+                    if(shouldInline)
+                    {
+                        scriptBuffer.append(">");
+                        copyCompiledNodeToBuffer(currentSession, currentPath,
+                                scriptBuffer);
+                        scriptBuffer.append("</script>");
+                        
+                    }
+                    else
+                    {
+                        scriptBuffer.append(" src=\"" + currentPath + "\"></script>");
+                    }
+                }
+                out.write(scriptBuffer.toString());
             }
         } catch (WebResourceCompileException e) {
             if (shouldThrowException) {
@@ -107,20 +128,15 @@ public class WebResourceTag extends TagSupport {
         return super.doEndTag();
     }
 
+    protected void copyCompiledNodeToBuffer(Session currentSession,
+            String currentPath, StringBuffer scriptBuffer) throws RepositoryException, IOException {
+        Node compiledNode = currentSession.getNode(currentPath);
+        String compiledScriptString = IOUtils.toString(JCRUtils.getFileNodeAsStream(compiledNode));
+        scriptBuffer.append(compiledScriptString);
+    }
+
     public String getPath() {
         return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public String getWrapWithTag() {
-        return wrapWithTag;
-    }
-
-    public void setWrapWithTag(String wrapWithTag) {
-        this.wrapWithTag = wrapWithTag;
     }
 
     public boolean shouldThrowException() {
@@ -142,4 +158,5 @@ public class WebResourceTag extends TagSupport {
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
+    
 }

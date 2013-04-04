@@ -3,6 +3,7 @@ package org.apache.sling.webresource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -40,14 +41,14 @@ public interface WebResourceScriptCache {
     
     /**
      * 
-     * Get consolidated Web Resources
+     * Get Pats to consolidated Web Resources
      * 
      * @param session
      * @param webResourceGroupName
      * @return
      * @throws WebResourceCompileException
      */
-    public InputStream getCompiledWebResourceGroup(Session session, String webResourceGroupName)
+    public List<String> getCompiledWebResourceGroupPaths(Session session, String webResourceGroupName)
             throws WebResourceCompileException;
 
     /**
@@ -71,6 +72,6 @@ public interface WebResourceScriptCache {
      * @throws WebResourceCompileException
      */
     public WebResourceScriptCompiler getWebResourceCompilerForNode(
-            Node sourceNode) throws WebResourceCompileException, WebResourceCompilerNotFoundException;
+            Node sourceNode) throws WebResourceCompilerNotFoundException;
 
 }

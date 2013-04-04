@@ -49,5 +49,14 @@ public interface WebResourceScriptCompiler {
      * @param extention
      * @return
      */
-    public boolean canCompileNode(Node sourceNode) throws WebResourceCompileException;
+    public boolean canCompileNode(Node sourceNode);
+    
+    
+    /**
+     * 
+     * Returns the script extension that scripts are compiled to.
+     * 
+     * @return
+     */
+    public String compiledScriptExtension();
 }
