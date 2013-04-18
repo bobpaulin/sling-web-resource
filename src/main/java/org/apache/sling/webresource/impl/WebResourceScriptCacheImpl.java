@@ -132,26 +132,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             resolver = resourceResolverFactory
                     .getAdministrativeResourceResolver(null);
             Session session = resolver.adaptTo(Session.class);
-            Node compiledNode = JCRUtils.createNode(session.getRootNode(),
-                    destinationPath);
-
-            compiledNode.setPrimaryType("nt:file");
-            Node compiledContent = null;
-            if (compiledNode.hasNode(Property.JCR_CONTENT)) {
-                compiledContent = compiledNode.getNode(Property.JCR_CONTENT);
-            } else {
-                compiledContent = compiledNode.addNode(Property.JCR_CONTENT,
-                        "nt:resource");
-            }
-
-            ValueFactory valueFactory = session.getValueFactory();
-            Binary compiledBinary = valueFactory.createBinary(result);
-
-            compiledContent.setProperty(Property.JCR_DATA, compiledBinary);
-            Calendar lastModified = Calendar.getInstance();
-            compiledContent.setProperty(Property.JCR_LAST_MODIFIED,
-                    lastModified);
-
+            JCRUtils.createFileContentNode(destinationPath, result, session);
             session.save();
         } catch (Exception e) {
             throw new WebResourceCompileException(
@@ -162,6 +143,10 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             }
         }
     }
+
+    
+
+    
 
     /**
      * 
@@ -188,17 +173,8 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Set<String> cachePaths = new HashSet<String>();
         try {
 
-            Query query = session
-                    .getWorkspace()
-                    .getQueryManager()
-                    .createQuery(
-                            "SELECT * FROM [nt:file] INNER JOIN [webresource:WebResourceGroup] as webResourceGroupSet ON ISDESCENDANTNODE([nt:file], webResourceGroupSet) WHERE webResourceGroupSet.[webresource:name] = $webResourceName",
-                            Query.JCR_SQL2);
-
-            query.bindValue("webResourceName", session.getValueFactory()
-                    .createValue(webResourceGroupName));
-
-            QueryResult queryResult = query.execute();
+            QueryResult queryResult = getWebResourceGroupQueryResults(session,
+                    webResourceGroupName);
 
             RowIterator resultList = queryResult.getRows();
 
@@ -275,6 +251,31 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
     /**
      * 
+     * Runs Query for Web Resource Nodes in a given group
+     * 
+     * @param session
+     * @param webResourceGroupName
+     * @return
+     * @throws RepositoryException
+     */
+    protected QueryResult getWebResourceGroupQueryResults(Session session,
+            String webResourceGroupName) throws RepositoryException {
+        Query query = session
+                .getWorkspace()
+                .getQueryManager()
+                .createQuery(
+                        "SELECT * FROM [nt:file] INNER JOIN [webresource:WebResourceGroup] as webResourceGroupSet ON ISDESCENDANTNODE([nt:file], webResourceGroupSet) WHERE webResourceGroupSet.[webresource:name] = $webResourceName",
+                        Query.JCR_SQL2);
+
+        query.bindValue("webResourceName", session.getValueFactory()
+                .createValue(webResourceGroupName));
+
+        QueryResult queryResult = query.execute();
+        return queryResult;
+    }
+
+    /**
+     * 
      * Reads compile options from Node and stores in a map.
      * 
      * @param compileOptions
@@ -316,7 +317,8 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         String result = null;
         try {
             Node sourceNode = session.getNode(path);
-            Node compiledNode = getCompiledScriptNode(session, sourceNode, null, null);
+            Node compiledNode = getCompiledScriptNode(session, sourceNode,
+                    null, null);
             result = compiledNode.getPath();
         } catch (RepositoryException e) {
             throw new WebResourceCompileException(
@@ -325,6 +327,18 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         return result;
     }
 
+    /**
+     * 
+     * Obtains Node of a compiled web resource.  If needed compiles the resource.
+     * 
+     * @param session
+     * @param sourceNode
+     * @param webResourceGroupNode
+     * @param compileOptions
+     * @return
+     * @throws WebResourceCompileException
+     * @throws WebResourceCompilerNotFoundException
+     */
     public Node getCompiledScriptNode(Session session, Node sourceNode,
             Node webResourceGroupNode, Map<String, Object> compileOptions)
             throws WebResourceCompileException,

@@ -1,10 +1,14 @@
 package org.apache.sling.webresource.util;
 
 import java.io.InputStream;
+import java.util.Calendar;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.Binary;
+import javax.jcr.Session;
+import javax.jcr.ValueFactory;
 
 /**
  * 
@@ -111,6 +115,41 @@ public class JCRUtils {
                 .getProperty(Property.JCR_DATA);
 
         return webResourceData.getBinary().getStream();
+    }
+    
+    public static void createFileContentNode(String destinationPath,
+            InputStream result, Session session) throws RepositoryException {
+        Node compiledNode = JCRUtils.createNode(session.getRootNode(),
+                destinationPath);
+
+        compiledNode.setPrimaryType("nt:file");
+        Node compiledContent = null;
+        if (compiledNode.hasNode(Property.JCR_CONTENT)) {
+            compiledContent = compiledNode.getNode(Property.JCR_CONTENT);
+        } else {
+            compiledContent = compiledNode.addNode(Property.JCR_CONTENT,
+                    "nt:resource");
+        }
+
+        createBinaryJCRData(result, session, compiledContent);
+    }
+    
+    /**
+     * 
+     * Creates binary data from an input stream.
+     * 
+     * @param result
+     * @param session
+     * @param compiledContent
+     */
+    public static void createBinaryJCRData(InputStream result, Session session,
+            Node compiledContent) throws RepositoryException {
+        ValueFactory valueFactory = session.getValueFactory();
+        Binary compiledBinary = valueFactory.createBinary(result);
+
+        compiledContent.setProperty(Property.JCR_DATA, compiledBinary);
+        Calendar lastModified = Calendar.getInstance();
+        compiledContent.setProperty(Property.JCR_LAST_MODIFIED, lastModified);
     }
 
 }
