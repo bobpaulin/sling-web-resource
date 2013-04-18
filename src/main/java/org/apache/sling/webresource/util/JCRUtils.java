@@ -6,7 +6,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 
-
 /**
  * 
  * JCR Utility Class to manipulate various things while dealing with the JCR
@@ -26,7 +25,7 @@ public class JCRUtils {
      */
     public static Node createNode(Node parent, String path)
             throws RepositoryException {
-        path = convertPathToRelative(path);
+        path = convertPathToRelative("/", path);
         int pathPos = path.indexOf("/");
         String currentNodeName = path;
         if (pathPos > 0) {
@@ -49,17 +48,20 @@ public class JCRUtils {
 
     /**
      * 
-     * Convert an absolute path to a relative path
+     * Converts a path to a relative path to the base path.
      * 
+     * @param basePath
      * @param path
      * @return
      */
-    public static String convertPathToRelative(String path) {
-        if (path.startsWith("/")) {
-            path = path.substring(1);
+    public static String convertPathToRelative(String basePath, String path) {
+        if (path.startsWith(basePath)) {
+            return path.substring(basePath.length());
+        } else {
+            return path;
         }
-        return path;
     }
+
     /**
      * 
      * Returns the extention of the node.
@@ -68,13 +70,12 @@ public class JCRUtils {
      * @return
      * @throws RepositoryException
      */
-    public static String getNodeExtension(Node node) throws RepositoryException
-    {
+    public static String getNodeExtension(Node node) throws RepositoryException {
         String nodeName = node.getName();
         int extensionPosition = nodeName.lastIndexOf(".");
         return nodeName.substring(extensionPosition + 1);
     }
-    
+
     /**
      * 
      * Converts a Node's Path to the same Path with a new extension.
@@ -84,15 +85,15 @@ public class JCRUtils {
      * @return
      * @throws RepositoryException
      */
-    public static String convertNodeExtensionPath(Node node, String extension) throws RepositoryException
-    {
+    public static String convertNodeExtensionPath(Node node, String extension)
+            throws RepositoryException {
         String oldExtension = getNodeExtension(node);
         String oldPath = node.getPath();
         int extensionPos = oldPath.lastIndexOf(oldExtension);
-        
-        return oldPath.substring(0, extensionPos) + extension; 
+
+        return oldPath.substring(0, extensionPos) + extension;
     }
-    
+
     /**
      * 
      * Converts a file node to a InputStream
@@ -104,7 +105,7 @@ public class JCRUtils {
      * @throws ValueFormatException
      */
     public static InputStream getFileNodeAsStream(Node fileNode)
-            throws RepositoryException{
+            throws RepositoryException {
         Node webResourceContent = fileNode.getNode(Property.JCR_CONTENT);
         Property webResourceData = webResourceContent
                 .getProperty(Property.JCR_DATA);

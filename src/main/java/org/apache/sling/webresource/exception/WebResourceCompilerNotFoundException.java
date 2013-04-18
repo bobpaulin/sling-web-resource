@@ -2,7 +2,7 @@ package org.apache.sling.webresource.exception;
 
 /**
  * 
- * Exception for finding Web Resource for given resource
+ * Exception for not finding Web Resource Compiler for given resource
  * 
  * @author bpaulin
  * 

@@ -15,9 +15,18 @@ import org.apache.sling.webresource.util.JCRUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(immediate=true, metatype=true)
+/**
+ * 
+ * CSS No Op Compiler Nothing needs to be compiled here
+ * 
+ * @author bpaulin
+ * 
+ */
+
+@Component(immediate = true, metatype = true)
 @Service
-public class CssNoOpCompilerImpl extends AbstractNoOpCompiler implements WebResourceScriptCompiler {
+public class CssNoOpCompilerImpl extends AbstractNoOpCompiler implements
+        WebResourceScriptCompiler {
     @Override
     public String compiledScriptExtension() {
         return "css";

@@ -15,9 +15,18 @@ import org.apache.sling.webresource.util.JCRUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(immediate=true, metatype=true)
+/**
+ * 
+ * No Op class for JavaScript. Nothing needs to be compiled here.
+ * 
+ * @author bpaulin
+ * 
+ */
+
+@Component(immediate = true, metatype = true)
 @Service
-public class JavaScriptNoOpCompilerImpl extends AbstractNoOpCompiler implements WebResourceScriptCompiler {
+public class JavaScriptNoOpCompilerImpl extends AbstractNoOpCompiler implements
+        WebResourceScriptCompiler {
     @Override
     public String compiledScriptExtension() {
         return "js";

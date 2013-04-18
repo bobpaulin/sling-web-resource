@@ -15,12 +15,28 @@
         	<rtexprvalue>true</rtexprvalue>
         </attribute>
         <attribute>
+        	<name>path</name>
+        	<type>java.lang.String</type>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
         	<name>shouldThrowException</name>
         	<required>false</required>
         	<rtexprvalue>true</rtexprvalue>
         </attribute>
         <attribute>
         	<name>shouldInline</name>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+        	<name>consolidate</name>
+        	<required>false</required>
+        	<rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+        	<name>compileOnly</name>
         	<required>false</required>
         	<rtexprvalue>true</rtexprvalue>
         </attribute>

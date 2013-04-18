@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -24,7 +25,7 @@ public interface WebResourceScriptCache {
 
     /**
      * 
-     * Returns Cache of compiled Web Resources. If it's out of date or does not
+     * Returns a path to the Cache of compiled Web Resources. If it's out of date or does not
      * yet exists the web resource is compiled and saved to path specified in
      * complier service
      * 
@@ -36,32 +37,23 @@ public interface WebResourceScriptCache {
      * @throws RepositoryException
      * @throws IOException
      */
-    public InputStream getCompiledScript(Session session, String path)
-            throws WebResourceCompileException, WebResourceCompilerNotFoundException;
-    
+    public String getCompiledScriptPath(Session session, String path)
+            throws WebResourceCompileException,
+            WebResourceCompilerNotFoundException;
+
     /**
      * 
-     * Get Pats to consolidated Web Resources
+     * Get Paths to consolidated Web Resources
      * 
      * @param session
      * @param webResourceGroupName
      * @return
      * @throws WebResourceCompileException
      */
-    public List<String> getCompiledWebResourceGroupPaths(Session session, String webResourceGroupName)
+    public List<String> getCompiledWebResourceGroupPaths(Session session,
+            String webResourceGroupName, boolean consolidate)
             throws WebResourceCompileException;
 
-    /**
-     * 
-     * Returns the Path to the compiled web resource.
-     * 
-     * @param session
-     * @param path
-     * @return
-     * @throws WebResourceCompileException
-     */
-    public String getCompiledScriptPath(Session session, String path)
-            throws WebResourceCompileException, WebResourceCompilerNotFoundException;
     /**
      * 
      * Returns the first web resource compiler that can compile a given file
