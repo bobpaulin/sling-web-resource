@@ -45,7 +45,7 @@ public class WebResourceTag extends TagSupport {
 
     private boolean shouldThrowException;
 
-    private boolean shouldInline;
+    private boolean inline;
 
     private boolean compileOnly;
 
@@ -141,7 +141,7 @@ public class WebResourceTag extends TagSupport {
         StringBuffer scriptBuffer = new StringBuffer();
         if (currentPath.endsWith(".css")) {
             scriptBuffer.append("<link rel=\"stylesheet\" ");
-            if (shouldInline) {
+            if (inline) {
                 scriptBuffer.append(">");
                 copyCompiledNodeToBuffer(currentSession, currentPath,
                         scriptBuffer);
@@ -152,7 +152,7 @@ public class WebResourceTag extends TagSupport {
 
         } else {
             scriptBuffer.append("<script");
-            if (shouldInline) {
+            if (inline) {
                 scriptBuffer.append(">");
                 copyCompiledNodeToBuffer(currentSession, currentPath,
                         scriptBuffer);
@@ -196,12 +196,12 @@ public class WebResourceTag extends TagSupport {
         this.shouldThrowException = shouldThrowException;
     }
 
-    public void setShouldInline(boolean shouldInline) {
-        this.shouldInline = shouldInline;
+    public void setInline(boolean inline) {
+        this.inline = inline;
     }
 
-    public boolean shouldInline() {
-        return shouldInline;
+    public boolean getInline() {
+        return inline;
     }
     
     public void setPath(String path) {
