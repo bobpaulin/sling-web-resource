@@ -3,8 +3,12 @@
 This project provides an abstraction that allows pluggable web resource compilers
  such as CoffeeScript to compile within Sling.
 
+This project includes just the framework.  
+The examples below require the inclusion of the sling-coffee-core bundle at [sling-coffee][https://github.com/bobpaulin/sling-coffee] project.
 
-Compilers should extend the WebResourceScriptCompiler interface then they may use the WebResourceTag as follows:
+Compilers should extend the WebResourceScriptCompiler interface then they may use the WebResourceTag as follows
+
+
 ## Path Based
 Just include the following tag library in you JSP
 
