@@ -42,6 +42,7 @@ import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
+import org.apache.sling.webresource.model.WebResourceGroup;
 import org.apache.sling.webresource.util.JCRUtils;
 import org.osgi.service.component.ComponentContext;
 
@@ -89,18 +90,17 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * @throws WebResourceCompileException
      */
     protected Node compileWebResourceToNode(Node sourceNode,
-            Node webResourceGroupNode, WebResourceScriptCompiler compiler,
-            Map<String, Object> compileOptions)
+            WebResourceGroup webResourceGroup, WebResourceScriptCompiler compiler)
             throws WebResourceCompileException {
 
         Node result = null;
         try {
 
             InputStream compiledStream = compiler.compile(
-                    JCRUtils.getFileNodeAsStream(sourceNode), compileOptions);
+                    JCRUtils.getFileNodeAsStream(sourceNode), webResourceGroup.getCompileOptions());
 
             String destinationPath = getCachedCompiledScriptPath(sourceNode,
-                    webResourceGroupNode, compiler);
+                    webResourceGroup, compiler);
 
             createWebResourceNode(destinationPath, compiledStream);
 
@@ -144,33 +144,16 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         }
     }
 
-    
-
-    
-
-    /**
-     * 
-     * Constructs that path to a consolidated web resource group.
-     * 
-     * @param cachePath
-     * @param webResourceGroupName
-     * @param webResourceExtension
-     * @return
-     */
-
-    public String getWebResourceGroupPath(String cachePath,
-            String webResourceGroupName, String webResourceExtension) {
-        return cachePath + "/" + webResourceGroupName + "."
-                + webResourceExtension;
-    }
-
-    public List<String> getCompiledWebResourceGroupPaths(Session session,
+    public Map<String, List<String>> getCompiledWebResourceGroupPaths(Session session,
             String webResourceGroupName, boolean consolidate)
             throws WebResourceCompileException {
-        Map<String, InputStream> compiledWebResourceStreamMap = new HashMap<String, InputStream>();
-        Map<String, Object> compileOptions = new HashMap<String, Object>();
-        List<String> result = new ArrayList<String>();
+        Map<String, List<String>> result = new HashMap<String, List<String>>();
         Set<String> cachePaths = new HashSet<String>();
+        
+        Map<String, Long> latestLastModifiedByExtention = new HashMap<String, Long>(); 
+        
+        WebResourceGroup webResourceGroup = null;
+        
         try {
 
             QueryResult queryResult = getWebResourceGroupQueryResults(session,
@@ -181,72 +164,146 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             while (resultList.hasNext()) {
                 Row currentRow = resultList.nextRow();
                 Node currentResult = currentRow.getNode("nt:file");
-                Node currentWebResource = currentRow
-                        .getNode("webResourceGroupSet");
+                if(webResourceGroup == null)
+                {
+                    webResourceGroup = new WebResourceGroup(currentRow.getNode("webResourceGroupSet"));
+                }
 
                 try {
 
-                    processCompileOptions(compileOptions, currentWebResource);
-
                     Node currentCompiledScript = getCompiledScriptNode(session,
-                            currentResult, currentWebResource, compileOptions);
+                            currentResult, webResourceGroup);
 
-                    String compiledScriptPath = null;
-
+                    String compiledScriptPath = currentCompiledScript.getPath();
+                    
                     String currentExtension = JCRUtils
                             .getNodeExtension(currentCompiledScript);
-
-                    if (consolidate) {
-                        compiledScriptPath = getWebResourceGroupPath(
-                                WEB_RESOURCE_GROUP_CACHE_PATH,
-                                webResourceGroupName, currentExtension);
-                    } else {
-                        compiledScriptPath = currentCompiledScript.getPath();
+                    
+                    List<String> extentionPathList = result.get(currentExtension);
+                    if(extentionPathList == null)
+                    {
+                        extentionPathList = new ArrayList<String>();
+                        result.put(currentExtension, extentionPathList);
                     }
+                    extentionPathList.add(compiledScriptPath);
 
-                    InputStream compiledStream = JCRUtils
-                            .getFileNodeAsStream(currentCompiledScript);
-
-                    InputStream consolidatedStream = compiledWebResourceStreamMap
-                            .get(currentExtension);
-
-                    if (consolidatedStream == null) {
-                        consolidatedStream = compiledStream;
-                    } else {
-                        consolidatedStream = new SequenceInputStream(
-                                consolidatedStream, compiledStream);
+                    
+                    
+                    long currentFileLastModifiedTime = JCRUtils.getJcrModifiedDate(currentCompiledScript).getTimeInMillis();
+                    
+                    Long currentLatest = latestLastModifiedByExtention.get(currentExtension);
+                    
+                    if(currentLatest == null  || currentFileLastModifiedTime > currentLatest)
+                    {
+                        currentLatest = currentFileLastModifiedTime;
                     }
-                    compiledWebResourceStreamMap.put(compiledScriptPath,
-                            consolidatedStream);
+                    
+                    latestLastModifiedByExtention.put(currentExtension, currentLatest);
+                    
                 } catch (WebResourceCompilerNotFoundException e) {
 
                     log.info("Compiler Not Found for Node at Path: "
                             + currentResult.getPath());
                 }
             }
-
-            if (!session.nodeExists(WEB_RESOURCE_GROUP_CACHE_PATH)) {
-                JCRUtils.createNode(session.getRootNode(),
-                        WEB_RESOURCE_GROUP_CACHE_PATH);
+            if(consolidate)
+            {
+                result = consolidateWebResources(session, webResourceGroup, latestLastModifiedByExtention, result);
             }
-
-            if (!compiledWebResourceStreamMap.isEmpty()) {
-                for (String currentScriptPath : compiledWebResourceStreamMap
-                        .keySet()) {
-                    InputStream currentStream = compiledWebResourceStreamMap
-                            .get(currentScriptPath);
-                    createWebResourceNode(currentScriptPath, currentStream);
-                    result.add(currentScriptPath);
-                }
-
-            }
-
         } catch (RepositoryException e) {
             throw new WebResourceCompileException(
                     "Error consolidating Web Resource Group", e);
         }
 
         return result;
+    }
+    
+    
+    /**
+     * 
+     * Consolidates several web resource files into one.
+     * 
+     * @param session
+     * @param webResourceGroup
+     * @param compiledWebResourcePaths
+     * @return
+     * @throws RepositoryException
+     * @throws WebResourceCompileException
+     */
+    public Map<String, List<String>> consolidateWebResources(Session session, WebResourceGroup webResourceGroup, Map<String, Long> cacheLatestLastModifiedByExtention, Map<String, List<String>> compiledWebResourcePaths) throws RepositoryException, WebResourceCompileException
+    {
+        Map<String, List<String>> resultPaths = new HashMap<String, List<String>>();
+        //Find out if there is a cached copy
+        StringBuffer webResourceGroupPathBuffer = new StringBuffer();
+        
+        if(webResourceGroup.getCachePath() != null)
+        {
+            webResourceGroupPathBuffer.append(webResourceGroup.getCachePath()); 
+        }
+        else
+        {
+            webResourceGroupPathBuffer.append( WEB_RESOURCE_GROUP_CACHE_PATH);
+        }
+        
+        webResourceGroupPathBuffer.append("/");
+        webResourceGroupPathBuffer.append( webResourceGroup.getName());
+        webResourceGroupPathBuffer.append(".");
+        
+        for(String currentExtention: cacheLatestLastModifiedByExtention.keySet())
+        {
+            String cachedWebResourcePath = webResourceGroupPathBuffer.toString() + currentExtention;
+            Long currentExtentionLastModified = cacheLatestLastModifiedByExtention.get(currentExtention);
+            boolean cacheHit = false;
+            if(session.nodeExists(cachedWebResourcePath))
+            {
+                Node currentConsolidatedWebResource = session.getNode(cachedWebResourcePath);
+                Long cachedLastModified = JCRUtils.getJcrModifiedDate(currentConsolidatedWebResource).getTimeInMillis();
+                
+               
+                    if(currentExtentionLastModified < cachedLastModified)
+                    {
+                        cacheHit = true;
+                    }
+            }
+            
+            if(!cacheHit)
+            {
+                createConsolidatedSource(session,
+                        compiledWebResourcePaths, currentExtention,
+                        cachedWebResourcePath);
+            }
+            
+            List<String> consolidatedPathListForExtention = new ArrayList<String>();
+            consolidatedPathListForExtention.add(cachedWebResourcePath);
+            resultPaths.put(currentExtention, consolidatedPathListForExtention);
+        }
+        return resultPaths;
+    }
+
+    protected void createConsolidatedSource(Session session,
+            Map<String, List<String>> compiledWebResourcePaths,
+            String currentExtention, String cachedWebResourcePath) throws RepositoryException,
+            WebResourceCompileException {
+        //Cached copy is out of date
+        InputStream consolidatedInputStream = null;
+        
+        for(String currentResourcePath: compiledWebResourcePaths.get(currentExtention))
+        {
+            Node currentCompiledNode = session.getNode(currentResourcePath);
+            InputStream currentInputStream = JCRUtils.getFileNodeAsStream(currentCompiledNode);
+            
+            if(consolidatedInputStream == null)
+            {
+                consolidatedInputStream = currentInputStream;
+            }
+            else
+            {
+                consolidatedInputStream = new SequenceInputStream(consolidatedInputStream, currentInputStream);
+            }
+        }
+        
+        //Write
+        createWebResourceNode(cachedWebResourcePath, consolidatedInputStream);
     }
 
     /**
@@ -274,43 +331,6 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         return queryResult;
     }
 
-    /**
-     * 
-     * Reads compile options from Node and stores in a map.
-     * 
-     * @param compileOptions
-     * @param currentWebResource
-     */
-    protected void processCompileOptions(Map<String, Object> compileOptions,
-            Node currentWebResource) throws RepositoryException {
-        if (currentWebResource.hasNode("compileOptions")) {
-
-            Node compileOptionsNode = currentWebResource
-                    .getNode("compileOptions");
-
-            NodeIterator compileOptionIt = compileOptionsNode.getNodes();
-
-            while (compileOptionIt.hasNext()) {
-                Node currentOption = compileOptionIt.nextNode();
-                String compilerName = currentOption.getProperty(
-                        "webresource:compiler").getString();
-                String optionName = currentOption.getProperty(
-                        "webresource:compileOptionName").getString();
-                String optionValue = currentOption.getProperty(
-                        "webresource:compileOptionValue").getString();
-                Map<String, Object> currentCompilerOptions = (Map<String, Object>) compileOptions
-                        .get(compilerName);
-                if (currentCompilerOptions == null) {
-                    currentCompilerOptions = new HashMap<String, Object>();
-                    compileOptions.put(compilerName, currentCompilerOptions);
-                }
-
-                currentCompilerOptions.put(optionName, optionValue);
-            }
-
-        }
-    }
-
     public String getCompiledScriptPath(Session session, String path)
             throws WebResourceCompileException,
             WebResourceCompilerNotFoundException {
@@ -318,7 +338,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         try {
             Node sourceNode = session.getNode(path);
             Node compiledNode = getCompiledScriptNode(session, sourceNode,
-                    null, null);
+                    null);
             result = compiledNode.getPath();
         } catch (RepositoryException e) {
             throw new WebResourceCompileException(
@@ -333,14 +353,13 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * 
      * @param session
      * @param sourceNode
-     * @param webResourceGroupNode
-     * @param compileOptions
+     * @param webResourceGroup
      * @return
      * @throws WebResourceCompileException
      * @throws WebResourceCompilerNotFoundException
      */
     public Node getCompiledScriptNode(Session session, Node sourceNode,
-            Node webResourceGroupNode, Map<String, Object> compileOptions)
+            WebResourceGroup webResourceGroup)
             throws WebResourceCompileException,
             WebResourceCompilerNotFoundException {
         Node result = null;
@@ -349,7 +368,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
         try {
             String cachedCompiledScriptPath = getCachedCompiledScriptPath(
-                    sourceNode, webResourceGroupNode, compiler);
+                    sourceNode, webResourceGroup, compiler);
 
             if (session.nodeExists(cachedCompiledScriptPath)) {
                 Node compiledScriptNode = session
@@ -372,7 +391,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             // Script is either not compiled or out of date.
             if (result == null) {
                 result = compileWebResourceToNode(sourceNode,
-                        webResourceGroupNode, compiler, compileOptions);
+                        webResourceGroup, compiler);
             }
         } catch (Exception e) {
             throw new WebResourceCompileException(e);
@@ -382,24 +401,27 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
     }
 
     protected String getCachedCompiledScriptPath(Node sourceNode,
-            Node webResourceGroupNode, WebResourceScriptCompiler compiler)
+            WebResourceGroup webResourceGroup, WebResourceScriptCompiler compiler)
             throws RepositoryException {
         String cachedCompiledScriptPath = null;
         // If the web resource has a custom cache path then override compiler
         // default.
-        if (webResourceGroupNode != null
-                && webResourceGroupNode.hasProperty("webresource:cachePath")) {
-            String cacheRootPath = webResourceGroupNode.getProperty(
-                    "webresource:cachePath").getString();
-            String webResourcePath = webResourceGroupNode.getPath();
+        if (webResourceGroup != null
+                && webResourceGroup.getCachePath() != null) {
 
             String relativePath = JCRUtils.convertPathToRelative(
-                    webResourcePath,
+                    webResourceGroup.getGroupPath(),
                     JCRUtils.convertNodeExtensionPath(sourceNode,
                             compiler.compiledScriptExtension()));
-            cachedCompiledScriptPath = cacheRootPath + relativePath;
+            cachedCompiledScriptPath = webResourceGroup.getCachePath() + relativePath;
 
-        } else {
+        } else if(webResourceGroup != null) {
+            String relativePath = JCRUtils.convertPathToRelative(
+                    webResourceGroup.getGroupPath(),
+                    JCRUtils.convertNodeExtensionPath(sourceNode,
+                            compiler.compiledScriptExtension()));
+            cachedCompiledScriptPath = WEB_RESOURCE_GROUP_CACHE_PATH + relativePath;
+        }else {
             String relativePath = JCRUtils.convertPathToRelative(
                     "/",
                     JCRUtils.convertNodeExtensionPath(sourceNode,

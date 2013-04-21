@@ -2,7 +2,9 @@ package org.apache.sling.webresource.taglib;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.Session;
@@ -74,21 +76,40 @@ public class WebResourceTag extends TagSupport {
         try {
             out = pageContext.getOut();
             Session currentSession = currentNode.getSession();
-            List<String> webResourcePaths = null;
+            Map<String, List<String>> webResourcePathMap = null;
             if (groupName != null) {
-                webResourcePaths = webResourceScriptCache
+                webResourcePathMap = webResourceScriptCache
                         .getCompiledWebResourceGroupPaths(currentSession,
                                 groupName, consolidate);
             } else if (path != null) {
-                webResourcePaths = new ArrayList<String>();
-                webResourcePaths.add(webResourceScriptCache
-                        .getCompiledScriptPath(currentSession, path));
+                String scriptPath = webResourceScriptCache
+                    .getCompiledScriptPath(currentSession, path);
+                int periodLocation = scriptPath.lastIndexOf(".");
+                String extention = scriptPath.substring(periodLocation+1);
+                webResourcePathMap = new HashMap<String, List<String>>();
+                List<String> scriptPathList = new ArrayList<String>();
+                scriptPathList.add(scriptPath);
+                webResourcePathMap.put(extention, scriptPathList);
             }
             if (!compileOnly) {
-                for (String currentPath : webResourcePaths) {
-                    StringBuffer scriptBuffer = createLinks(currentSession,
-                            currentPath);
-                    out.write(scriptBuffer.toString());
+                for(String extentionName: webResourcePathMap.keySet())
+                {
+                    if(extentionName.equals("js"))
+                    {
+                        for (String currentPath : webResourcePathMap.get(extentionName)) {
+                            StringBuffer scriptBuffer = createScriptLinks(currentSession,
+                                    currentPath);
+                            out.write(scriptBuffer.toString());
+                        }
+                    }
+                    else
+                    {
+                        for (String currentPath : webResourcePathMap.get(extentionName)) {
+                            StringBuffer scriptBuffer = createStyleSheetLinks(currentSession,
+                                    currentPath);
+                            out.write(scriptBuffer.toString());
+                        }
+                    }
                 }
             }
         } catch (WebResourceCompileException e) {
@@ -125,21 +146,11 @@ public class WebResourceTag extends TagSupport {
 
         return super.doEndTag();
     }
-
-    /**
-     * 
-     * Build links to compiled resources
-     * 
-     * @param currentSession
-     * @param currentPath
-     * @return
-     * @throws RepositoryException
-     * @throws IOException
-     */
-    protected StringBuffer createLinks(Session currentSession,
+    
+    protected StringBuffer createStyleSheetLinks(Session currentSession,
             String currentPath) throws RepositoryException, IOException {
         StringBuffer scriptBuffer = new StringBuffer();
-        if (currentPath.endsWith(".css")) {
+        
             scriptBuffer.append("<link rel=\"stylesheet\" ");
             if (inline) {
                 scriptBuffer.append(">");
@@ -150,18 +161,23 @@ public class WebResourceTag extends TagSupport {
                 scriptBuffer.append("href=\"" + currentPath + "\"/>");
             }
 
-        } else {
-            scriptBuffer.append("<script");
-            if (inline) {
-                scriptBuffer.append(">");
-                copyCompiledNodeToBuffer(currentSession, currentPath,
-                        scriptBuffer);
-                scriptBuffer.append("</script>");
+        return scriptBuffer;
+    }
+    
+    protected StringBuffer createScriptLinks(Session currentSession,
+            String currentPath) throws RepositoryException, IOException {
+        StringBuffer scriptBuffer = new StringBuffer();
+        scriptBuffer.append("<script");
+        if (inline) {
+            scriptBuffer.append(">");
+            copyCompiledNodeToBuffer(currentSession, currentPath,
+                    scriptBuffer);
+            scriptBuffer.append("</script>");
 
-            } else {
-                scriptBuffer.append(" src=\"" + currentPath + "\"></script>");
-            }
+        } else {
+            scriptBuffer.append(" src=\"" + currentPath + "\"></script>");
         }
+        
         return scriptBuffer;
     }
 

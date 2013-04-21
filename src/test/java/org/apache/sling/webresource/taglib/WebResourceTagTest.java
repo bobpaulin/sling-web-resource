@@ -4,7 +4,9 @@ import static org.junit.Assert.*;
 import static org.easymock.EasyMock.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -134,11 +136,13 @@ public class WebResourceTagTest {
         expect(mockPageContext.getOut()).andReturn(mockJspWriter);
         expect(mockNode.getSession()).andReturn(mockSession);
         
+        Map<String, List<String>> webResourceGroupPaths = new HashMap<String, List<String>>();
         List<String> groupPaths = new ArrayList<String>();
         groupPaths.add("/content/test/source1.js");
         groupPaths.add("/content/test/source2.js");
+        webResourceGroupPaths.put("js", groupPaths);
         
-        expect(mockWebResourceCache.getCompiledWebResourceGroupPaths(mockSession, "test", false)).andReturn(groupPaths);
+        expect(mockWebResourceCache.getCompiledWebResourceGroupPaths(mockSession, "test", false)).andReturn(webResourceGroupPaths);
         mockJspWriter.write("<script src=\"/content/test/source1.js\"></script>");
         mockJspWriter.write("<script src=\"/content/test/source2.js\"></script>");
         

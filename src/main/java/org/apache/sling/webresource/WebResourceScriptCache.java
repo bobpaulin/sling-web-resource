@@ -50,7 +50,7 @@ public interface WebResourceScriptCache {
      * @return
      * @throws WebResourceCompileException
      */
-    public List<String> getCompiledWebResourceGroupPaths(Session session,
+    public Map<String, List<String>> getCompiledWebResourceGroupPaths(Session session,
             String webResourceGroupName, boolean consolidate)
             throws WebResourceCompileException;
 

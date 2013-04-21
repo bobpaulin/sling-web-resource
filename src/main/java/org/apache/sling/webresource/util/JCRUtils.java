@@ -116,7 +116,7 @@ public class JCRUtils {
 
         return webResourceData.getBinary().getStream();
     }
-    
+
     public static void createFileContentNode(String destinationPath,
             InputStream result, Session session) throws RepositoryException {
         Node compiledNode = JCRUtils.createNode(session.getRootNode(),
@@ -134,6 +134,24 @@ public class JCRUtils {
         createBinaryJCRData(result, session, compiledContent);
     }
     
+    public static void createFileContentNodeWithCacheSigniture(String destinationPath,
+            InputStream result, Session session) throws RepositoryException {
+        Node compiledNode = JCRUtils.createNode(session.getRootNode(),
+                destinationPath);
+
+        compiledNode.setPrimaryType("nt:file");
+
+        Node compiledContent = null;
+        if (compiledNode.hasNode(Property.JCR_CONTENT)) {
+            compiledContent = compiledNode.getNode(Property.JCR_CONTENT);
+        } else {
+            compiledContent = compiledNode.addNode(Property.JCR_CONTENT,
+                    "nt:resource");
+        }
+
+        createBinaryJCRData(result, session, compiledContent);
+    }
+
     /**
      * 
      * Creates binary data from an input stream.
@@ -150,6 +168,21 @@ public class JCRUtils {
         compiledContent.setProperty(Property.JCR_DATA, compiledBinary);
         Calendar lastModified = Calendar.getInstance();
         compiledContent.setProperty(Property.JCR_LAST_MODIFIED, lastModified);
+    }
+
+    /**
+     * 
+     * Retrieves JCR File node's last modified date.
+     * 
+     * @param fileNode
+     * @return
+     */
+    public static Calendar getJcrModifiedDate(Node fileNode) throws RepositoryException {
+        Node contentNode = fileNode.getNode(Property.JCR_CONTENT);
+
+        Property lastModifiedProperty = contentNode
+                .getProperty(Property.JCR_LAST_MODIFIED);
+        return lastModifiedProperty.getDate();
     }
 
 }
