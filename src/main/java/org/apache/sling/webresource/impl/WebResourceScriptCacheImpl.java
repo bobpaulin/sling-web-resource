@@ -96,8 +96,14 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Node result = null;
         try {
 
-            InputStream compiledStream = compiler.compile(
-                    JCRUtils.getFileNodeAsStream(sourceNode), webResourceGroup.getCompileOptions());
+            Map<String, Object> compileOptions = null;
+            if(webResourceGroup != null)
+            {
+                compileOptions = webResourceGroup.getCompileOptions();
+            }
+
+            InputStream compiledStream = compiledStream = compiler.compile(
+                    JCRUtils.getFileNodeAsStream(sourceNode), compileOptions);
 
             String destinationPath = getCachedCompiledScriptPath(sourceNode,
                     webResourceGroup, compiler);
@@ -422,10 +428,8 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
                             compiler.compiledScriptExtension()));
             cachedCompiledScriptPath = WEB_RESOURCE_GROUP_CACHE_PATH + relativePath;
         }else {
-            String relativePath = JCRUtils.convertPathToRelative(
-                    "/",
-                    JCRUtils.convertNodeExtensionPath(sourceNode,
-                            compiler.compiledScriptExtension()));
+            String relativePath = JCRUtils.convertNodeExtensionPath(sourceNode,
+                            compiler.compiledScriptExtension());
             cachedCompiledScriptPath = compiler.getCacheRoot() + relativePath;
         }
         return cachedCompiledScriptPath;

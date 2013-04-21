@@ -3,15 +3,21 @@
 This project provides an abstraction that allows pluggable web resource compilers
  such as CoffeeScript to compile within Sling.
 
-Compilers should extend the WebResourceScriptCompiler interface then they may use the WebResourceTag as follows:
 
+Compilers should extend the WebResourceScriptCompiler interface then they may use the WebResourceTag as follows:
+## Path Based
 Just include the following tag library in you JSP
 
     <%@taglib prefix="webresource" uri="http://sling.apache.org/taglibs/sling/webresource/1.0.0"%>
 
 Then add the tag to compile a Web Resource file (such as CoffeeScript) from a specific path
 
-<webresource:webresource path="/content/coffee/demo/demo.coffee"/>
+    <webresource:webresource path="/content/coffee/demo/demo.coffee"/>
+    
+
+This will compile the resource at the path specified and output a script tag in the JSP as follows:
+
+    <script src="/var/coffeescript/content/coffee/demo/demo.js"></script>
 
 ## Web Resource Groups
 
