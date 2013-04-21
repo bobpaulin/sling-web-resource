@@ -39,12 +39,12 @@ The group can then be called using the web resource tag as follows:
 Optionally you can specify where the web resources will be conpiled to by adding a webresource:cachePath property.
 
 For instance in the example above where /content/chaplin is the web resource folder and the following configuration is used:
-    {
-	    "jcr:primaryType": "nt:folder",
-	    "jcr:mixinTypes": ["webresource:WebResourceGroup"],
-	    "webresource:name": "chaplin",
-	    "webresource:cachePath": "/content/chaplin/js"
-   }
+     {
+	     "jcr:primaryType": "nt:folder",
+	     "jcr:mixinTypes": ["webresource:WebResourceGroup"],
+	     "webresource:name": "chaplin",
+	     "webresource:cachePath": "/content/chaplin/js"
+     }
 
 Then the chaplin.coffee file will be compiled to /content/chaplin/js/chaplin.js
 
