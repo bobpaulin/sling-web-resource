@@ -369,27 +369,18 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             throws WebResourceCompileException,
             WebResourceCompilerNotFoundException {
         Node result = null;
-
+        boolean cacheHit = false;
         WebResourceScriptCompiler compiler = getWebResourceCompilerForNode(sourceNode);
 
         try {
             String cachedCompiledScriptPath = getCachedCompiledScriptPath(
                     sourceNode, webResourceGroup, compiler);
-
+            
             if (session.nodeExists(cachedCompiledScriptPath)) {
                 Node compiledScriptNode = session
                         .getNode(cachedCompiledScriptPath);
-                Node compiledScriptContent = compiledScriptNode
-                        .getNode(Property.JCR_CONTENT);
-                Node webResourceScriptContent = sourceNode
-                        .getNode(Property.JCR_CONTENT);
-                Property compiledScriptLastModified = compiledScriptContent
-                        .getProperty(Property.JCR_LAST_MODIFIED);
-                Property webResouceScriptLastModified = webResourceScriptContent
-                        .getProperty(Property.JCR_LAST_MODIFIED);
-
-                if (!compiledScriptLastModified.getDate().before(
-                        webResouceScriptLastModified.getDate())) {
+                
+                if(isCacheFresh(compiledScriptNode, sourceNode)) {
                     result = compiledScriptNode;
                 }
             }
@@ -404,6 +395,33 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         }
 
         return result;
+    }
+    /**
+     * 
+     * Determines if the cache is fresher than the source node. 
+     * 
+     * @param cacheScriptNode
+     * @param sourceNode
+     * @return
+     * @throws RepositoryException
+     */
+    protected boolean isCacheFresh(Node cacheScriptNode, Node sourceNode) throws RepositoryException {
+        boolean cacheFresh = false;
+        
+        Node cacheScriptContent = cacheScriptNode
+                .getNode(Property.JCR_CONTENT);
+        Node webResourceScriptContent = sourceNode
+                .getNode(Property.JCR_CONTENT);
+        Property cacheScriptLastModified = cacheScriptContent
+                .getProperty(Property.JCR_LAST_MODIFIED);
+        Property webResouceScriptLastModified = webResourceScriptContent
+                .getProperty(Property.JCR_LAST_MODIFIED);
+
+        if (!cacheScriptLastModified.getDate().before(
+                webResouceScriptLastModified.getDate())) {
+            cacheFresh = true;
+        }
+        return cacheFresh;
     }
 
     protected String getCachedCompiledScriptPath(Node sourceNode,
