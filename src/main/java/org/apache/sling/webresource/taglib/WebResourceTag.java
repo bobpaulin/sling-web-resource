@@ -94,22 +94,8 @@ public class WebResourceTag extends TagSupport {
             if (!compileOnly) {
                 for(String extentionName: webResourcePathMap.keySet())
                 {
-                    if(extentionName.equals("js"))
-                    {
-                        for (String currentPath : webResourcePathMap.get(extentionName)) {
-                            StringBuffer scriptBuffer = createScriptLinks(currentSession,
-                                    currentPath);
-                            out.write(scriptBuffer.toString());
-                        }
-                    }
-                    else
-                    {
-                        for (String currentPath : webResourcePathMap.get(extentionName)) {
-                            StringBuffer scriptBuffer = createStyleSheetLinks(currentSession,
-                                    currentPath);
-                            out.write(scriptBuffer.toString());
-                        }
-                    }
+                    processExtentionList(out, currentSession,
+                            webResourcePathMap, extentionName);
                 }
             }
         } catch (WebResourceCompileException e) {
@@ -145,6 +131,37 @@ public class WebResourceTag extends TagSupport {
         }
 
         return super.doEndTag();
+    }
+    /**
+     * 
+     * Writes out scripts based on extension.
+     * 
+     * @param out
+     * @param currentSession
+     * @param webResourcePathMap
+     * @param extentionName
+     * @throws IOException
+     * @throws RepositoryException
+     */
+    protected void processExtentionList(JspWriter out, Session currentSession,
+            Map<String, List<String>> webResourcePathMap, String extentionName)
+            throws IOException, RepositoryException {
+        if(extentionName.equals("js"))
+        {
+            for (String currentPath : webResourcePathMap.get(extentionName)) {
+                StringBuffer scriptBuffer = createScriptLinks(currentSession,
+                        currentPath);
+                out.write(scriptBuffer.toString());
+            }
+        }
+        else
+        {
+            for (String currentPath : webResourcePathMap.get(extentionName)) {
+                StringBuffer scriptBuffer = createStyleSheetLinks(currentSession,
+                        currentPath);
+                out.write(scriptBuffer.toString());
+            }
+        }
     }
     
     protected StringBuffer createStyleSheetLinks(Session currentSession,
