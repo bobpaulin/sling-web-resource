@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -57,7 +58,7 @@ import org.slf4j.LoggerFactory;
  * @author bpaulin
  * 
  */
-@Component(immediate = true, metatype = true)
+@Component(label="Web Resource Cache Service", immediate = true)
 @Service
 @Reference(name = "WebResourceCompilerProvider", referenceInterface = WebResourceScriptCompiler.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
@@ -72,8 +73,11 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
     private WebResourceScriptCompiler[] webResourceScriptCompilers;
 
     private static final String WEB_RESOURCE_GROUP_CACHE_PATH = "/var/webresource/groups";
+    
+    private Map<String, ReentrantLock> compileLockMap;
 
     public void activate(final ComponentContext context) {
+        compileLockMap = new HashMap<String, ReentrantLock>();
 
     }
 
@@ -107,7 +111,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
             String destinationPath = getCachedCompiledScriptPath(sourceNode,
                     webResourceGroup, compiler);
-
+            
             createWebResourceNode(destinationPath, compiledStream);
 
             Session currentSession = sourceNode.getSession();
@@ -133,7 +137,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             InputStream result) throws RepositoryException,
             WebResourceCompileException {
         ResourceResolver resolver = null;
-
+        log.info("Createing Web Resource Node at path: " + destinationPath);
         try {
             resolver = resourceResolverFactory
                     .getAdministrativeResourceResolver(null);
@@ -260,23 +264,28 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             String cachedWebResourcePath = webResourceGroupPathBuffer.toString() + currentExtention;
             Long currentExtentionLastModified = cacheLatestLastModifiedByExtention.get(currentExtention);
             boolean cacheHit = false;
-            if(session.nodeExists(cachedWebResourcePath))
-            {
-                Node currentConsolidatedWebResource = session.getNode(cachedWebResourcePath);
-                Long cachedLastModified = JCRUtils.getJcrModifiedDate(currentConsolidatedWebResource).getTimeInMillis();
+            aquireLock(cachedWebResourcePath);
+            try{
+                if(session.nodeExists(cachedWebResourcePath))
+                {
+                    Node currentConsolidatedWebResource = session.getNode(cachedWebResourcePath);
+                    Long cachedLastModified = JCRUtils.getJcrModifiedDate(currentConsolidatedWebResource).getTimeInMillis();
+                    
+                   
+                        if(currentExtentionLastModified < cachedLastModified)
+                        {
+                            cacheHit = true;
+                        }
+                }
                 
-               
-                    if(currentExtentionLastModified < cachedLastModified)
-                    {
-                        cacheHit = true;
-                    }
-            }
-            
-            if(!cacheHit)
-            {
-                createConsolidatedSource(session,
-                        compiledWebResourcePaths, currentExtention,
-                        cachedWebResourcePath);
+                if(!cacheHit)
+                {
+                    createConsolidatedSource(session,
+                            compiledWebResourcePaths, currentExtention,
+                            cachedWebResourcePath);
+                }
+            }finally{
+                releaseLock(cachedWebResourcePath);
             }
             
             List<String> consolidatedPathListForExtention = new ArrayList<String>();
@@ -371,30 +380,90 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Node result = null;
         boolean cacheHit = false;
         WebResourceScriptCompiler compiler = getWebResourceCompilerForNode(sourceNode);
-
+        String cachedCompiledScriptPath = null;
         try {
-            String cachedCompiledScriptPath = getCachedCompiledScriptPath(
+            cachedCompiledScriptPath = getCachedCompiledScriptPath(
                     sourceNode, webResourceGroup, compiler);
+            
+            aquireLock(cachedCompiledScriptPath);
             
             if (session.nodeExists(cachedCompiledScriptPath)) {
                 Node compiledScriptNode = session
                         .getNode(cachedCompiledScriptPath);
-                
+                    
                 if(isCacheFresh(compiledScriptNode, sourceNode)) {
                     result = compiledScriptNode;
                 }
             }
-
-            // Script is either not compiled or out of date.
+    
+                // Script is either not compiled or out of date.
             if (result == null) {
                 result = compileWebResourceToNode(sourceNode,
-                        webResourceGroup, compiler);
+                       webResourceGroup, compiler);
             }
+            
         } catch (Exception e) {
             throw new WebResourceCompileException(e);
+        }finally{
+            releaseLock(cachedCompiledScriptPath);
         }
 
         return result;
+    }
+
+    /**
+     * 
+     * Create locks on cached scripts to prevent overcompiling.
+     * 
+     * @param cachedCompiledScriptPath
+     * @return
+     */
+    protected ReentrantLock aquireLock(String cachedCompiledScriptPath) {
+        ReentrantLock pathLock;
+        synchronized(this)
+        {
+             pathLock = compileLockMap.get(cachedCompiledScriptPath);
+             if(pathLock == null)
+             {
+                 log.info("Created lock for Path: "+ cachedCompiledScriptPath);
+                 pathLock = new ReentrantLock();
+                 compileLockMap.put(cachedCompiledScriptPath, pathLock);
+                 pathLock.lock();
+             }
+        }
+        if(!pathLock.isHeldByCurrentThread())
+        {
+            pathLock.lock();
+            pathLock = aquireLock(cachedCompiledScriptPath);
+        }
+        return pathLock;
+    }
+    
+    /**
+     * 
+     * Release lock on compiled scripts.
+     * 
+     * @param cachedCompiledScriptPath
+     */
+    protected void releaseLock(String cachedCompiledScriptPath)
+    {
+        synchronized(this)
+        {
+            
+             ReentrantLock pathLock = compileLockMap.get(cachedCompiledScriptPath);
+             if(pathLock != null)
+             {
+                 log.info("Releasing lock for Path: "+ cachedCompiledScriptPath);
+                 pathLock.unlock();
+                 //Cleans out the compile lock map to prevent memory leak
+                 //Queued threads method is an estimate. However it should be an overestimate
+                 //since it may return true with cancelled threads
+                 if(!pathLock.hasQueuedThreads())
+                 {
+                     compileLockMap.remove(cachedCompiledScriptPath);
+                 }
+             }
+        }
     }
     /**
      * 

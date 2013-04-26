@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 
-@Component(immediate = true, metatype = true)
+@Component(label="JavaScript No Op Compiler Service", immediate = true)
 @Service
 public class JavaScriptNoOpCompilerImpl extends AbstractNoOpCompiler implements
         WebResourceScriptCompiler {
