@@ -41,9 +41,12 @@ import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.WebResourceScriptCompiler;
+import org.apache.sling.webresource.WebResourceScriptCompilerProvider;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
 import org.apache.sling.webresource.model.WebResourceGroup;
+import org.apache.sling.webresource.postprocessors.PostCompileProcessProvider;
+import org.apache.sling.webresource.postprocessors.PostConsolidationProcessProvider;
 import org.apache.sling.webresource.util.JCRUtils;
 import org.osgi.service.component.ComponentContext;
 
@@ -60,17 +63,21 @@ import org.slf4j.LoggerFactory;
  */
 @Component(label="Web Resource Cache Service", immediate = true)
 @Service
-@Reference(name = "WebResourceCompilerProvider", referenceInterface = WebResourceScriptCompiler.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
     @Reference
     private ResourceResolverFactory resourceResolverFactory;
+    
+    @Reference
+    private WebResourceScriptCompilerProvider webResourceScriptCompilerProvider;
+    
+    @Reference
+    private PostCompileProcessProvider postCompileProcessProvider;
+    
+    @Reference
+    private PostConsolidationProcessProvider postConsolidationProcessProvider;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
-    private List<WebResourceScriptCompiler> webResourceScriptCompilerList = new ArrayList<WebResourceScriptCompiler>();
-
-    private WebResourceScriptCompiler[] webResourceScriptCompilers;
 
     private static final String WEB_RESOURCE_GROUP_CACHE_PATH = "/var/webresource/groups";
     
@@ -100,15 +107,18 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         Node result = null;
         try {
 
-            Map<String, Object> compileOptions = null;
+            Map<String, Object> compileOptions = new HashMap<String, Object>();
+            compileOptions.put("sourcePath", sourceNode.getPath());
             if(webResourceGroup != null)
             {
-                compileOptions = webResourceGroup.getCompileOptions();
+                compileOptions.putAll(webResourceGroup.getCompileOptions());
             }
 
             InputStream compiledStream = compiledStream = compiler.compile(
                     JCRUtils.getFileNodeAsStream(sourceNode), compileOptions);
 
+            compiledStream = postCompileProcessProvider.applyPostCompileProcesses(sourceNode, compiledStream);
+            
             String destinationPath = getCachedCompiledScriptPath(sourceNode,
                     webResourceGroup, compiler);
             
@@ -316,7 +326,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
                 consolidatedInputStream = new SequenceInputStream(consolidatedInputStream, currentInputStream);
             }
         }
-        
+        postConsolidationProcessProvider.applyPostConsolidationProcesses(cachedWebResourcePath, consolidatedInputStream);
         //Write
         createWebResourceNode(cachedWebResourcePath, consolidatedInputStream);
     }
@@ -379,7 +389,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             WebResourceCompilerNotFoundException {
         Node result = null;
         boolean cacheHit = false;
-        WebResourceScriptCompiler compiler = getWebResourceCompilerForNode(sourceNode);
+        WebResourceScriptCompiler compiler = webResourceScriptCompilerProvider.getWebResourceCompilerForNode(sourceNode);
         String cachedCompiledScriptPath = null;
         try {
             cachedCompiledScriptPath = getCachedCompiledScriptPath(
@@ -530,87 +540,15 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         try {
             Node sourceNode = session.getNode(path);
 
-            compiler = getWebResourceCompilerForNode(sourceNode);
+            compiler = webResourceScriptCompilerProvider.getWebResourceCompilerForNode(sourceNode);
         } catch (RepositoryException e) {
             throw new WebResourceCompileException(e);
         }
         return compiler;
     }
 
-    public WebResourceScriptCompiler getWebResourceCompilerForNode(
-            Node sourceNode) throws WebResourceCompilerNotFoundException {
-        WebResourceScriptCompiler result = null;
+    
 
-        WebResourceScriptCompiler[] serviceProviders = getWebResourceCompilerProviders();
-
-        if (serviceProviders != null) {
-            for (WebResourceScriptCompiler currentService : serviceProviders) {
-                // Select the first service that can compile a web resource with
-                // this
-                // extension
-                if (currentService.canCompileNode(sourceNode)) {
-                    result = currentService;
-                    break;
-                }
-            }
-        }
-
-        if (result == null) {
-            throw new WebResourceCompilerNotFoundException(
-                    "No Compiler Found for this Web Resource Extension");
-        }
-
-        return result;
-    }
-
-    /**
-     * 
-     * Bind Compiler Providers
-     * 
-     * @param webResourceCompilerService
-     */
-    protected void bindWebResourceCompilerProvider(
-            WebResourceScriptCompiler webResourceCompilerService) {
-        synchronized (this.webResourceScriptCompilerList) {
-            this.webResourceScriptCompilerList.add(webResourceCompilerService);
-            this.webResourceScriptCompilers = null;
-        }
-    }
-
-    /**
-     * 
-     * Unbind Compiler Providers
-     * 
-     * @param webResourceCompilerService
-     */
-    protected void unbindWebResourceCompilerProvider(
-            WebResourceScriptCompiler webResourceCompilerService) {
-        synchronized (this.webResourceScriptCompilerList) {
-            this.webResourceScriptCompilerList
-                    .remove(webResourceCompilerService);
-            this.webResourceScriptCompilers = null;
-        }
-    }
-
-    /**
-     * 
-     * Return list of available compilers
-     * 
-     * @return
-     */
-    private WebResourceScriptCompiler[] getWebResourceCompilerProviders() {
-        WebResourceScriptCompiler[] list = this.webResourceScriptCompilers;
-
-        if (list == null) {
-            synchronized (this.webResourceScriptCompilerList) {
-                this.webResourceScriptCompilers = this.webResourceScriptCompilerList
-                        .toArray(new WebResourceScriptCompiler[this.webResourceScriptCompilerList
-                                .size()]);
-                list = this.webResourceScriptCompilers;
-            }
-        }
-
-        return list;
-    }
+    
 
 }

@@ -54,16 +54,4 @@ public interface WebResourceScriptCache {
             String webResourceGroupName, boolean consolidate)
             throws WebResourceCompileException;
 
-    /**
-     * 
-     * Returns the first web resource compiler that can compile a given file
-     * extension.
-     * 
-     * @param extention
-     * @return
-     * @throws WebResourceCompileException
-     */
-    public WebResourceScriptCompiler getWebResourceCompilerForNode(
-            Node sourceNode) throws WebResourceCompilerNotFoundException;
-
 }

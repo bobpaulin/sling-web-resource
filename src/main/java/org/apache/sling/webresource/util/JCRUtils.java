@@ -10,6 +10,9 @@ import javax.jcr.Binary;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+
 /**
  * 
  * JCR Utility Class to manipulate various things while dealing with the JCR
@@ -116,6 +119,12 @@ public class JCRUtils {
 
         return webResourceData.getBinary().getStream();
     }
+    
+    public static InputStream getFileResourceAsStream(ResourceResolver resolver, String path) throws RepositoryException
+    {
+        Resource fileResource = resolver.getResource(path);
+        return getFileNodeAsStream(fileResource.adaptTo(Node.class));
+    }
 
     public static void createFileContentNode(String destinationPath,
             InputStream result, Session session) throws RepositoryException {
@@ -123,24 +132,6 @@ public class JCRUtils {
                 destinationPath);
 
         compiledNode.setPrimaryType("nt:file");
-        Node compiledContent = null;
-        if (compiledNode.hasNode(Property.JCR_CONTENT)) {
-            compiledContent = compiledNode.getNode(Property.JCR_CONTENT);
-        } else {
-            compiledContent = compiledNode.addNode(Property.JCR_CONTENT,
-                    "nt:resource");
-        }
-
-        createBinaryJCRData(result, session, compiledContent);
-    }
-    
-    public static void createFileContentNodeWithCacheSigniture(String destinationPath,
-            InputStream result, Session session) throws RepositoryException {
-        Node compiledNode = JCRUtils.createNode(session.getRootNode(),
-                destinationPath);
-
-        compiledNode.setPrimaryType("nt:file");
-
         Node compiledContent = null;
         if (compiledNode.hasNode(Property.JCR_CONTENT)) {
             compiledContent = compiledNode.getNode(Property.JCR_CONTENT);
