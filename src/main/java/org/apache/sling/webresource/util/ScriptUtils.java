@@ -3,6 +3,7 @@ package org.apache.sling.webresource.util;
 import java.util.Map;
 
 import org.apache.sling.commons.json.JSONObject;
+import org.apache.sling.webresource.model.GlobalCompileOptions;
 
 public class ScriptUtils {
     
@@ -48,5 +49,23 @@ public class ScriptUtils {
     {
         JSONObject keysJson = new JSONObject(compileOptions);
         return keysJson.toString();
+    }
+    
+    /**
+     * 
+     * Gets global compile options.
+     * 
+     * @param compileOptions
+     * @return
+     */
+    public static GlobalCompileOptions getGlobalCompileOptions(Map<String, Object> compileOptions)
+    {
+        GlobalCompileOptions result = null;
+        if(compileOptions != null)
+        {
+            result = (GlobalCompileOptions)compileOptions.get("global");
+        }
+
+        return result;
     }
 }

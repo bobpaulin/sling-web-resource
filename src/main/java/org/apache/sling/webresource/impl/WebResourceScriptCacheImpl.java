@@ -44,6 +44,7 @@ import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.WebResourceScriptCompilerProvider;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
+import org.apache.sling.webresource.model.GlobalCompileOptions;
 import org.apache.sling.webresource.model.WebResourceGroup;
 import org.apache.sling.webresource.postprocessors.PostCompileProcessProvider;
 import org.apache.sling.webresource.postprocessors.PostConsolidationProcessProvider;
@@ -108,13 +109,15 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         try {
 
             Map<String, Object> compileOptions = new HashMap<String, Object>();
-            compileOptions.put("sourcePath", sourceNode.getPath());
+            GlobalCompileOptions globalCompileOptions = new GlobalCompileOptions();
+            globalCompileOptions.setSourcePath(sourceNode.getPath());
+            compileOptions.put("global", globalCompileOptions);
             if(webResourceGroup != null)
             {
                 compileOptions.putAll(webResourceGroup.getCompileOptions());
             }
 
-            InputStream compiledStream = compiledStream = compiler.compile(
+            InputStream compiledStream = compiler.compile(
                     JCRUtils.getFileNodeAsStream(sourceNode), compileOptions);
 
             compiledStream = postCompileProcessProvider.applyPostCompileProcesses(sourceNode, compiledStream);
