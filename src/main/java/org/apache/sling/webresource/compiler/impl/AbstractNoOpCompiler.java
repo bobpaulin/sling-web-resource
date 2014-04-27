@@ -5,11 +5,6 @@ import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
-
-import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.util.JCRUtils;
 

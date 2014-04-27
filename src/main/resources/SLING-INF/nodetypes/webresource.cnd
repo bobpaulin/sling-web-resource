@@ -5,6 +5,8 @@
 [webresource:WebResourceGroup] mixin
 - webresource:name (string)
 - webresource:cachePath (string)
+- webresource:groupHash (string)
++ inventory (webresource:Inventory)
 + compileOptions (webresource:CompileOptions)
 
 [webresource:CompileOptions] > nt:unstructured
@@ -14,3 +16,5 @@
 - webresource:compiler (string)
 - webresource:compileOptionName (string)
 - webresource:compileOptionValue (string)
+
+[webresource:Inventory] > nt:unstructured

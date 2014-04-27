@@ -6,13 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 
-import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.postprocessors.PostCompileProcess;
 import org.apache.sling.webresource.postprocessors.PostCompileProcessProvider;
 

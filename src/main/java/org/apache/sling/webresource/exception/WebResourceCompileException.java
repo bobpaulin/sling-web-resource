@@ -9,7 +9,12 @@ package org.apache.sling.webresource.exception;
  */
 public class WebResourceCompileException extends Exception {
 
-    public WebResourceCompileException() {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -7954123249147859507L;
+
+	public WebResourceCompileException() {
         super();
     }
 

@@ -9,7 +9,12 @@ package org.apache.sling.webresource.exception;
  */
 public class WebResourceCompilerNotFoundException extends Exception {
 
-    public WebResourceCompilerNotFoundException() {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -4792982490718998543L;
+
+	public WebResourceCompilerNotFoundException() {
         super();
     }
 

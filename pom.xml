@@ -4,7 +4,7 @@
 	<groupId>org.apache.sling</groupId>
 	<artifactId>sling-web-resource</artifactId>
 	<packaging>bundle</packaging>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 
 	<dependencies>
 		<dependency>
@@ -12,6 +12,11 @@
 			<artifactId>jcr</artifactId>
 			<version>2.0</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.sling</groupId>
@@ -56,6 +61,12 @@
 			<version>1.6.0</version>
 		</dependency>
 		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>2.4</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.10</version>
@@ -77,6 +88,11 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mozilla</groupId>
+			<artifactId>rhino</artifactId>
+			<version>1.7R4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.sling</groupId>
@@ -124,6 +140,10 @@
 						<Sling-Nodetypes>
 							SLING-INF/nodetypes/webresource.cnd
 						</Sling-Nodetypes>
+						<Embed-Dependency>
+							commons-codec;inline=true,
+							rhino;inline=true
+						</Embed-Dependency>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -154,7 +174,7 @@
 									<goal>install</goal>
 								</goals>
 								<configuration>
-									<slingUrl>http://localhost:8080/system/console</slingUrl>
+									<slingUrl>http://localhost:4502/system/console</slingUrl>
 									<user>admin</user>
 									<password>admin</password>
 								</configuration>

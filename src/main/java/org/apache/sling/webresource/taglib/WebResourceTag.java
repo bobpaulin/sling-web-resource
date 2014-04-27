@@ -1,39 +1,29 @@
 package org.apache.sling.webresource.taglib;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.jcr.Node;
-import javax.jcr.Session;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.JspWriter;
 import javax.servlet.jsp.PageContext;
 import javax.servlet.jsp.tagext.TagSupport;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.sling.api.scripting.SlingScriptHelper;
-
 import org.apache.sling.webresource.WebResourceScriptCache;
-import org.apache.sling.webresource.exception.WebResourceCompileException;
-import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
 import org.apache.sling.webresource.util.JCRUtils;
 
-import org.apache.commons.io.IOUtils;
-
-/**
- * 
- * This is a custom tag that renders a compiled web resource based on a path to
- * a web resource source file.
- * 
- * @author bpaulin
- * 
- */
 public class WebResourceTag extends TagSupport {
 
-    private String path;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -3322071843929377647L;
+
 
     private SlingScriptHelper sling;
 
@@ -43,19 +33,12 @@ public class WebResourceTag extends TagSupport {
 
     private String groupName;
 
-    private boolean consolidate;
-
-    private boolean shouldThrowException;
-
     private boolean inline;
-
-    private boolean compileOnly;
 
     @Override
     public int doStartTag() throws JspException {
-        if ((groupName == null && path == null)
-                || (groupName != null && path != null)) {
-            throw new JspException("Either Group Name or Path must be set");
+        if (groupName == null) {
+            throw new JspException("Either Group Name must be set");
         }
 
         return super.doStartTag();
@@ -76,52 +59,24 @@ public class WebResourceTag extends TagSupport {
         try {
             out = pageContext.getOut();
             Session currentSession = currentNode.getSession();
-            Map<String, List<String>> webResourcePathMap = null;
+            Map<String, List<String>> webResourcePaths = null;
             if (groupName != null) {
-                webResourcePathMap = webResourceScriptCache
-                        .getCompiledWebResourceGroupPaths(currentSession,
-                                groupName, consolidate);
-            } else if (path != null) {
-                String scriptPath = webResourceScriptCache
-                    .getCompiledScriptPath(currentSession, path);
-                int periodLocation = scriptPath.lastIndexOf(".");
-                String extention = scriptPath.substring(periodLocation+1);
-                webResourcePathMap = new HashMap<String, List<String>>();
-                List<String> scriptPathList = new ArrayList<String>();
-                scriptPathList.add(scriptPath);
-                webResourcePathMap.put(extention, scriptPathList);
+                webResourcePaths = webResourceScriptCache
+                        .getWebResourceCachedInventoryPaths(currentSession, groupName);
+               for(String currentExtention: webResourcePaths.keySet())
+               {
+            	   processExtentionList(out, currentSession, webResourcePaths, currentExtention);
+               }
+               
             }
-            if (!compileOnly) {
-                for(String extentionName: webResourcePathMap.keySet())
-                {
-                    processExtentionList(out, currentSession,
-                            webResourcePathMap, extentionName);
-                }
-            }
-        } catch (WebResourceCompileException e) {
-            if (shouldThrowException) {
-                throw new JspException(e);
-            }
-            try {
-                out.write("/*" + e.toString() + "*/");
-            } catch (IOException e1) {
-                throw new JspException(e1);
-            }
-        } catch (WebResourceCompilerNotFoundException e) {
-            if (shouldThrowException) {
-                throw new JspException(e);
-            }
-            try {
-                out.write("/*" + e.toString() + "*/");
-            } catch (IOException e1) {
-                throw new JspException(e1);
-            }
-        } catch (IOException e) {
-            try {
-                out.write("/*" + e.toString() + "*/");
-            } catch (IOException e1) {
-                throw new JspException(e1);
-            }
+        }catch(IOException e)
+        {
+        	try{
+        		out.write("/*" + e.toString() + "*/");
+        	}catch(IOException e1)
+        	{
+        		throw new JspException(e1);
+        	}
         } catch (RepositoryException e) {
             try {
                 out.write("/*" + e.toString() + "*/");
@@ -217,18 +172,6 @@ public class WebResourceTag extends TagSupport {
         scriptBuffer.append(compiledScriptString);
     }
 
-    public String getPath() {
-        return path;
-    }
-
-    public boolean shouldThrowException() {
-        return shouldThrowException;
-    }
-
-    public void setShouldThrowException(boolean shouldThrowException) {
-        this.shouldThrowException = shouldThrowException;
-    }
-
     public void setInline(boolean inline) {
         this.inline = inline;
     }
@@ -236,21 +179,9 @@ public class WebResourceTag extends TagSupport {
     public boolean getInline() {
         return inline;
     }
-    
-    public void setPath(String path) {
-        this.path = path;
-    }
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
-    }
-
-    public void setConsolidate(boolean consolidate) {
-        this.consolidate = consolidate;
-    }
-
-    public void setCompileOnly(boolean compileOnly) {
-        this.compileOnly = compileOnly;
     }
 
 }

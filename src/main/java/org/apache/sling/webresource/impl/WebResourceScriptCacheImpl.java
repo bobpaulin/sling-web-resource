@@ -1,44 +1,32 @@
 package org.apache.sling.webresource.impl;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.jcr.Binary;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.Workspace;
-import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
 import javax.jcr.NodeIterator;
 import javax.jcr.query.RowIterator;
 import javax.jcr.query.Row;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.WebResourceScriptCompilerProvider;
@@ -50,7 +38,6 @@ import org.apache.sling.webresource.postprocessors.PostCompileProcessProvider;
 import org.apache.sling.webresource.postprocessors.PostConsolidationProcessProvider;
 import org.apache.sling.webresource.util.JCRUtils;
 import org.osgi.service.component.ComponentContext;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,14 +153,56 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             }
         }
     }
+    
+    public String calculateWebResourceGroupHash(Session session, String webResourceGroupName)
+    {
+    	StopWatch stopWatch = new StopWatch();
+    	stopWatch.start();
+    	String result = null;
+    	InputStream consolidatedInputStream = null;
+    	
+    	 try {
+
+             QueryResult queryResult = getWebResourceGroupQueryResults(session,
+                     webResourceGroupName);
+
+             RowIterator resultList = queryResult.getRows();
+
+             while (resultList.hasNext()) {
+                 Row currentRow = resultList.nextRow();
+                 Node currentResult = currentRow.getNode("nt:file");
+                 InputStream currentInputStream = JCRUtils.getFileNodeAsStream(currentResult);
+                 
+                 if(consolidatedInputStream == null)
+                 {
+                     consolidatedInputStream = currentInputStream;
+                 }
+                 else
+                 {
+                     consolidatedInputStream = new SequenceInputStream(consolidatedInputStream, currentInputStream);
+                 }
+             }
+             
+             ;
+             result = new String(Base64.encodeBase64(DigestUtils.md5(consolidatedInputStream)));
+             stopWatch.stop();
+             log.info("WebResource Hash for " + webResourceGroupName + " completed in: " + stopWatch);
+    	 } catch (RepositoryException e) {
+             log.error("Error occured calculating Web Resource Group Hash: ", e);
+         } catch (IOException e) {
+        	 log.error("Error occured calculating Web Resource Group Hash: ", e);
+		} 
+    	
+    	return result;
+    }
 
     public Map<String, List<String>> getCompiledWebResourceGroupPaths(Session session,
             String webResourceGroupName, boolean consolidate)
             throws WebResourceCompileException {
+    	
+    	StopWatch stopWatch = new StopWatch();
+    	stopWatch.start();
         Map<String, List<String>> result = new HashMap<String, List<String>>();
-        Set<String> cachePaths = new HashSet<String>();
-        
-        Map<String, Long> latestLastModifiedByExtention = new HashMap<String, Long>(); 
         
         WebResourceGroup webResourceGroup = null;
         
@@ -209,19 +238,6 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
                         result.put(currentExtension, extentionPathList);
                     }
                     extentionPathList.add(compiledScriptPath);
-
-                    
-                    
-                    long currentFileLastModifiedTime = JCRUtils.getJcrModifiedDate(currentCompiledScript).getTimeInMillis();
-                    
-                    Long currentLatest = latestLastModifiedByExtention.get(currentExtension);
-                    
-                    if(currentLatest == null  || currentFileLastModifiedTime > currentLatest)
-                    {
-                        currentLatest = currentFileLastModifiedTime;
-                    }
-                    
-                    latestLastModifiedByExtention.put(currentExtension, currentLatest);
                     
                 } catch (WebResourceCompilerNotFoundException e) {
 
@@ -231,13 +247,14 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             }
             if(consolidate)
             {
-                result = consolidateWebResources(session, webResourceGroup, latestLastModifiedByExtention, result);
+                result = consolidateWebResources(session, webResourceGroup, result);
             }
         } catch (RepositoryException e) {
             throw new WebResourceCompileException(
                     "Error consolidating Web Resource Group", e);
         }
-
+        stopWatch.stop();
+        log.info("Compilation of Web Resource Group " + webResourceGroupName + " completed in: " + stopWatch);
         return result;
     }
     
@@ -253,7 +270,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
      * @throws RepositoryException
      * @throws WebResourceCompileException
      */
-    public Map<String, List<String>> consolidateWebResources(Session session, WebResourceGroup webResourceGroup, Map<String, Long> cacheLatestLastModifiedByExtention, Map<String, List<String>> compiledWebResourcePaths) throws RepositoryException, WebResourceCompileException
+    public Map<String, List<String>> consolidateWebResources(Session session, WebResourceGroup webResourceGroup, Map<String, List<String>> compiledWebResourcePaths) throws RepositoryException, WebResourceCompileException
     {
         Map<String, List<String>> resultPaths = new HashMap<String, List<String>>();
         //Find out if there is a cached copy
@@ -272,31 +289,14 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         webResourceGroupPathBuffer.append( webResourceGroup.getName());
         webResourceGroupPathBuffer.append(".");
         
-        for(String currentExtention: cacheLatestLastModifiedByExtention.keySet())
+        for(String currentExtention: compiledWebResourcePaths.keySet())
         {
             String cachedWebResourcePath = webResourceGroupPathBuffer.toString() + currentExtention;
-            Long currentExtentionLastModified = cacheLatestLastModifiedByExtention.get(currentExtention);
-            boolean cacheHit = false;
             aquireLock(cachedWebResourcePath);
             try{
-                if(session.nodeExists(cachedWebResourcePath))
-                {
-                    Node currentConsolidatedWebResource = session.getNode(cachedWebResourcePath);
-                    Long cachedLastModified = JCRUtils.getJcrModifiedDate(currentConsolidatedWebResource).getTimeInMillis();
-                    
-                   
-                        if(currentExtentionLastModified < cachedLastModified)
-                        {
-                            cacheHit = true;
-                        }
-                }
-                
-                if(!cacheHit)
-                {
-                    createConsolidatedSource(session,
+            	createConsolidatedSource(session,
                             compiledWebResourcePaths, currentExtention,
                             cachedWebResourcePath);
-                }
             }finally{
                 releaseLock(cachedWebResourcePath);
             }
@@ -358,6 +358,34 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         QueryResult queryResult = query.execute();
         return queryResult;
     }
+    
+    public Map<String, List<String>> getWebResourceCachedInventoryPaths(Session session, String webResourceGroupName) throws RepositoryException
+    {
+    	Map<String, List<String>> result = new HashMap<String, List<String>>();
+    	Query query = session
+                .getWorkspace()
+                .getQueryManager()
+                .createQuery(
+                        "SELECT * FROM [webresource:WebResourceGroup] as webResourceGroupSet WHERE webResourceGroupSet.[webresource:name] = $webResourceName",
+                        Query.JCR_SQL2);
+
+        query.bindValue("webResourceName", session.getValueFactory()
+                .createValue(webResourceGroupName));
+
+        QueryResult queryResult = query.execute();
+        
+        NodeIterator queryIt = queryResult.getNodes();
+        if(queryIt.hasNext())
+        {
+        	WebResourceGroup webResourceGroup = new WebResourceGroup(queryIt.nextNode());
+        	
+        	result.putAll(webResourceGroup.getInventory());
+        	
+        }
+        
+        return result;
+        
+    }
 
     public String getCompiledScriptPath(Session session, String path)
             throws WebResourceCompileException,
@@ -391,7 +419,6 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             throws WebResourceCompileException,
             WebResourceCompilerNotFoundException {
         Node result = null;
-        boolean cacheHit = false;
         WebResourceScriptCompiler compiler = webResourceScriptCompilerProvider.getWebResourceCompilerForNode(sourceNode);
         String cachedCompiledScriptPath = null;
         try {
