@@ -179,7 +179,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             List<String> webResourcePathList = 
             		webResourceInventoryManager.getSourceWebResources(webResourceGroupName);
             
-            log.info("Compiling: "  + webResourcePathList);
+            log.debug("Compiling: "  + webResourcePathList);
             
             webResourceGroup = new WebResourceGroup(
             		session.getNode(webResourceInventoryManager.getWebResourcePathLookup(webResourceGroupName)));
@@ -406,7 +406,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
              pathLock = compileLockMap.get(cachedCompiledScriptPath);
              if(pathLock == null)
              {
-                 log.info("Created lock for Path: "+ cachedCompiledScriptPath);
+                 log.debug("Created lock for Path: "+ cachedCompiledScriptPath);
                  pathLock = new ReentrantLock();
                  compileLockMap.put(cachedCompiledScriptPath, pathLock);
                  pathLock.lock();
@@ -434,7 +434,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
              ReentrantLock pathLock = compileLockMap.get(cachedCompiledScriptPath);
              if(pathLock != null)
              {
-                 log.info("Releasing lock for Path: "+ cachedCompiledScriptPath);
+                 log.debug("Releasing lock for Path: "+ cachedCompiledScriptPath);
                  pathLock.unlock();
                  //Cleans out the compile lock map to prevent memory leak
                  //Queued threads method is an estimate. However it should be an overestimate

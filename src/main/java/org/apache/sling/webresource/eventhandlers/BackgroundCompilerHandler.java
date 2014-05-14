@@ -72,7 +72,7 @@ public class BackgroundCompilerHandler implements EventHandler {
 		backgroundCompilerProps.put(EventConstants.EVENT_TOPIC, compileTopics);
 		bundleContext.registerService(EventHandler.class.getName(), this,
 				backgroundCompilerProps);
-		log.info("Background Compiler Activated");
+		log.debug("Background Compiler Activated");
 	}
 
 	@Override
