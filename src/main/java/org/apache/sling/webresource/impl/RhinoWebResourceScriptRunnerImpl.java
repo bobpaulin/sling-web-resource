@@ -79,6 +79,20 @@ public class RhinoWebResourceScriptRunnerImpl implements WebResourceScriptRunner
         return compiledScript;
 	}
 	
+	@Override
+	public void evaluateScriptInRootConext(String scriptName, InputStream script) {
+		Context rhinoContext = getRhinoContext();
+        try {
+
+            rhinoContext.evaluateReader(rootScope, new InputStreamReader(
+            		script), scriptName, 1, null);
+
+        } catch (IOException e) {
+			log.error("Error loading script " + scriptName + " to Root Context", e);
+		}
+		
+	}
+	
 	protected void loadGlobalScripts()  {
         Context rhinoContext = getRhinoContext();
         try {

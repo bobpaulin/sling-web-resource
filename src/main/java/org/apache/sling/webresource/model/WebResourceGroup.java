@@ -14,6 +14,8 @@ import javax.jcr.Value;
 
 public class WebResourceGroup {
     
+	public static final String NODE_TYPE = "webresource:WebResourceGroup";
+	
     public static final String NAME = "webresource:name";
     
     public static final String CACHE_PATH = "webresource:cachePath";

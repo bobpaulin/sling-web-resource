@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.ArrayList;
+import java.util.Dictionary;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -27,9 +29,11 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.webresource.WebResourceInventoryManager;
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.WebResourceScriptCompilerProvider;
+import org.apache.sling.webresource.eventhandlers.BackgroundCompilerHandler;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
 import org.apache.sling.webresource.model.GlobalCompileOptions;
@@ -37,7 +41,10 @@ import org.apache.sling.webresource.model.WebResourceGroup;
 import org.apache.sling.webresource.postprocessors.PostCompileProcessProvider;
 import org.apache.sling.webresource.postprocessors.PostConsolidationProcessProvider;
 import org.apache.sling.webresource.util.JCRUtils;
+import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +67,9 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
     private WebResourceScriptCompilerProvider webResourceScriptCompilerProvider;
     
     @Reference
+    private WebResourceInventoryManager webResourceInventoryManager;
+    
+    @Reference
     private PostCompileProcessProvider postCompileProcessProvider;
     
     @Reference
@@ -73,7 +83,6 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 
     public void activate(final ComponentContext context) {
         compileLockMap = new HashMap<String, ReentrantLock>();
-
     }
 
     /**
@@ -154,48 +163,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         }
     }
     
-    public String calculateWebResourceGroupHash(Session session, String webResourceGroupName)
-    {
-    	StopWatch stopWatch = new StopWatch();
-    	stopWatch.start();
-    	String result = null;
-    	InputStream consolidatedInputStream = null;
-    	
-    	 try {
-
-             QueryResult queryResult = getWebResourceGroupQueryResults(session,
-                     webResourceGroupName);
-
-             RowIterator resultList = queryResult.getRows();
-
-             while (resultList.hasNext()) {
-                 Row currentRow = resultList.nextRow();
-                 Node currentResult = currentRow.getNode("nt:file");
-                 InputStream currentInputStream = JCRUtils.getFileNodeAsStream(currentResult);
-                 
-                 if(consolidatedInputStream == null)
-                 {
-                     consolidatedInputStream = currentInputStream;
-                 }
-                 else
-                 {
-                     consolidatedInputStream = new SequenceInputStream(consolidatedInputStream, currentInputStream);
-                 }
-             }
-             
-             ;
-             result = new String(Base64.encodeBase64(DigestUtils.md5(consolidatedInputStream)));
-             stopWatch.stop();
-             log.info("WebResource Hash for " + webResourceGroupName + " completed in: " + stopWatch);
-    	 } catch (RepositoryException e) {
-             log.error("Error occured calculating Web Resource Group Hash: ", e);
-         } catch (IOException e) {
-        	 log.error("Error occured calculating Web Resource Group Hash: ", e);
-		} 
-    	
-    	return result;
-    }
-
+    
     public Map<String, List<String>> getCompiledWebResourceGroupPaths(Session session,
             String webResourceGroupName, boolean consolidate)
             throws WebResourceCompileException {
@@ -208,18 +176,16 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         
         try {
 
-            QueryResult queryResult = getWebResourceGroupQueryResults(session,
-                    webResourceGroupName);
+            List<String> webResourcePathList = 
+            		webResourceInventoryManager.getSourceWebResources(webResourceGroupName);
+            
+            log.info("Compiling: "  + webResourcePathList);
+            
+            webResourceGroup = new WebResourceGroup(
+            		session.getNode(webResourceInventoryManager.getWebResourcePathLookup(webResourceGroupName)));
 
-            RowIterator resultList = queryResult.getRows();
-
-            while (resultList.hasNext()) {
-                Row currentRow = resultList.nextRow();
-                Node currentResult = currentRow.getNode("nt:file");
-                if(webResourceGroup == null)
-                {
-                    webResourceGroup = new WebResourceGroup(currentRow.getNode("webResourceGroupSet"));
-                }
+            for (String currentWebResourcePath: webResourcePathList) {
+                Node currentResult = session.getNode(currentWebResourcePath);
 
                 try {
 
@@ -332,31 +298,6 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         postConsolidationProcessProvider.applyPostConsolidationProcesses(cachedWebResourcePath, consolidatedInputStream);
         //Write
         createWebResourceNode(cachedWebResourcePath, consolidatedInputStream);
-    }
-
-    /**
-     * 
-     * Runs Query for Web Resource Nodes in a given group
-     * 
-     * @param session
-     * @param webResourceGroupName
-     * @return
-     * @throws RepositoryException
-     */
-    protected QueryResult getWebResourceGroupQueryResults(Session session,
-            String webResourceGroupName) throws RepositoryException {
-        Query query = session
-                .getWorkspace()
-                .getQueryManager()
-                .createQuery(
-                        "SELECT * FROM [nt:file] INNER JOIN [webresource:WebResourceGroup] as webResourceGroupSet ON ISDESCENDANTNODE([nt:file], webResourceGroupSet) WHERE webResourceGroupSet.[webresource:name] = $webResourceName",
-                        Query.JCR_SQL2);
-
-        query.bindValue("webResourceName", session.getValueFactory()
-                .createValue(webResourceGroupName));
-
-        QueryResult queryResult = query.execute();
-        return queryResult;
     }
     
     public Map<String, List<String>> getWebResourceCachedInventoryPaths(Session session, String webResourceGroupName) throws RepositoryException
@@ -577,6 +518,12 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
         return compiler;
     }
 
+    
+    @Override
+    public String calculateWebResourceGroupHash(Session session,
+    		String webResourceGroupName) {
+    	return "testDummy";
+    }
     
 
     

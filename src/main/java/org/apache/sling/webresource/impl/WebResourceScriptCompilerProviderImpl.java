@@ -1,6 +1,8 @@
 package org.apache.sling.webresource.impl;
 
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 
 import javax.jcr.Node;
@@ -10,10 +12,14 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
-
+import org.apache.sling.webresource.WebResourceInventoryManager;
 import org.apache.sling.webresource.WebResourceScriptCompiler;
 import org.apache.sling.webresource.WebResourceScriptCompilerProvider;
+import org.apache.sling.webresource.compiler.impl.AbstractNoOpCompiler;
+import org.apache.sling.webresource.compiler.impl.CssNoOpCompilerImpl;
 import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventAdmin;
 
 @Component(label="Web Resource Compiler Provider Service", immediate = true)
 @Service
@@ -24,6 +30,9 @@ public class WebResourceScriptCompilerProviderImpl implements
     private List<WebResourceScriptCompiler> webResourceScriptCompilerList = new ArrayList<WebResourceScriptCompiler>();
 
     private WebResourceScriptCompiler[] webResourceScriptCompilers;
+    
+    @Reference
+    private EventAdmin eventAdmin;
     
     public WebResourceScriptCompiler getWebResourceCompilerForNode(
             Node sourceNode) throws WebResourceCompilerNotFoundException {
@@ -62,6 +71,13 @@ public class WebResourceScriptCompilerProviderImpl implements
         synchronized (this.webResourceScriptCompilerList) {
             this.webResourceScriptCompilerList.add(webResourceCompilerService);
             this.webResourceScriptCompilers = null;
+        }
+        
+        if(!(webResourceCompilerService instanceof AbstractNoOpCompiler))
+        {
+	        Dictionary<String, Object> properties = new Hashtable<String, Object>();
+	        Event event = new Event(WebResourceInventoryManager.COMPILE_ALL_EVENT, properties);
+	        this.eventAdmin.postEvent(event);
         }
     }
 
