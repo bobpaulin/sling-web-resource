@@ -237,7 +237,7 @@ public class WebResourceInventoryManagerImpl implements
 		org.osgi.service.event.Event compileEvent = new org.osgi.service.event.Event(
 				WebResourceInventoryManager.COMPILE_EVENT,
 				properties);
-		eventAdmin.sendEvent(compileEvent);
+		eventAdmin.postEvent(compileEvent);
 		
 		
 	}
@@ -336,7 +336,7 @@ public class WebResourceInventoryManagerImpl implements
 					org.osgi.service.event.Event compileEvent = new org.osgi.service.event.Event(
 							WebResourceInventoryManager.COMPILE_EVENT,
 							properties);
-					eventAdmin.sendEvent(compileEvent);
+					eventAdmin.postEvent(compileEvent);
 				}
 			} catch (RepositoryException e) {
 
@@ -402,7 +402,7 @@ public class WebResourceInventoryManagerImpl implements
 				}
 
 				if (osgiEvent != null) {
-					eventAdmin.sendEvent(osgiEvent);
+					eventAdmin.postEvent(osgiEvent);
 				}
 
 			} catch (RepositoryException e) {
