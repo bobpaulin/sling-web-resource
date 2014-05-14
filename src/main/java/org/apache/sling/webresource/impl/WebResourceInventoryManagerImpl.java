@@ -220,7 +220,7 @@ public class WebResourceInventoryManagerImpl implements
 			
 		}
 		
-		log.info("Created Invetory for Web Resource Group: " + webResourceGroupName);
+		log.info("Created Inventory for Web Resource Group: " + webResourceGroupName);
 		if(MapUtils.isNotEmpty(webResourceExtentionInventoryMap.get(webResourceGroupName)))
 		{
 			for(Entry<String, List<String>> extentionListEntry: webResourceExtentionInventoryMap.get(webResourceGroupName).entrySet())

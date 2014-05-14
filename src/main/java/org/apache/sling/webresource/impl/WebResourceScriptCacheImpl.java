@@ -146,7 +146,7 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
             InputStream result) throws RepositoryException,
             WebResourceCompileException {
         ResourceResolver resolver = null;
-        log.info("Createing Web Resource Node at path: " + destinationPath);
+        log.info("Creating Web Resource Node at path: " + destinationPath);
         try {
             resolver = resourceResolverFactory
                     .getAdministrativeResourceResolver(null);
