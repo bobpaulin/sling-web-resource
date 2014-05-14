@@ -230,6 +230,16 @@ public class WebResourceInventoryManagerImpl implements
 			}
 			
 		}
+		
+		Dictionary<String, Object> properties = new Hashtable<String, Object>();
+		properties.put("paths",
+				Collections.singletonList(webResourceNamePathMap.get(webResourceGroupName)));
+		org.osgi.service.event.Event compileEvent = new org.osgi.service.event.Event(
+				WebResourceInventoryManager.COMPILE_EVENT,
+				properties);
+		eventAdmin.sendEvent(compileEvent);
+		
+		
 	}
 
 	private String removePathFromWebResourceExtensionInventory(String path)
