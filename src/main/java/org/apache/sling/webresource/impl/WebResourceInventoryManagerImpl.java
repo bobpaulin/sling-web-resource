@@ -22,18 +22,13 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingConstants;
-import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.webresource.WebResourceInventoryManager;
-import org.apache.sling.webresource.WebResourceScriptCache;
-import org.apache.sling.webresource.eventhandlers.BackgroundCompilerHandler;
 import org.apache.sling.webresource.model.WebResourceGroup;
 import org.apache.sling.webresource.util.JCRUtils;
 import org.osgi.framework.BundleContext;
@@ -116,8 +111,6 @@ public class WebResourceInventoryManagerImpl implements
 		bundleContext.registerService(EventHandler.class.getName(),
 				new WebResourceGroupFolderHandler(), props);
 	}
-
-	
 
 	public Map<String, String> getWebResources(Session session)
 			throws RepositoryException {
@@ -217,30 +210,32 @@ public class WebResourceInventoryManagerImpl implements
 				updateWebResourceExtensionInventory(currentPath,
 						currentFileNode);
 			}
-			
-		}
-		
-		log.info("Created Inventory for Web Resource Group: " + webResourceGroupName);
 
-		if(log.isDebugEnabled() && MapUtils.isNotEmpty(webResourceExtentionInventoryMap.get(webResourceGroupName)))
-		{
-			for(Entry<String, List<String>> extentionListEntry: webResourceExtentionInventoryMap.get(webResourceGroupName).entrySet())
-			{
-				log.debug("Extension: " + extentionListEntry.getKey() + " Items: " + extentionListEntry.getValue());
-				
-			}
-			
 		}
-		
+
+		log.info("Created Inventory for Web Resource Group: "
+				+ webResourceGroupName);
+
+		if (log.isDebugEnabled()
+				&& MapUtils.isNotEmpty(webResourceExtentionInventoryMap
+						.get(webResourceGroupName))) {
+			for (Entry<String, List<String>> extentionListEntry : webResourceExtentionInventoryMap
+					.get(webResourceGroupName).entrySet()) {
+				log.debug("Extension: " + extentionListEntry.getKey()
+						+ " Items: " + extentionListEntry.getValue());
+
+			}
+
+		}
+
 		Dictionary<String, Object> properties = new Hashtable<String, Object>();
 		properties.put("paths",
-				Collections.singletonList(webResourceNamePathMap.get(webResourceGroupName)));
+				Collections.singletonList(webResourceNamePathMap
+						.get(webResourceGroupName)));
 		org.osgi.service.event.Event compileEvent = new org.osgi.service.event.Event(
-				WebResourceInventoryManager.COMPILE_EVENT,
-				properties);
+				WebResourceInventoryManager.COMPILE_EVENT, properties);
 		eventAdmin.postEvent(compileEvent);
-		
-		
+
 	}
 
 	private String removePathFromWebResourceExtensionInventory(String path)
@@ -340,7 +335,7 @@ public class WebResourceInventoryManagerImpl implements
 					eventAdmin.postEvent(compileEvent);
 				}
 			} catch (RepositoryException e) {
-
+				log.error("Error Detecting Web Resource Event", e);
 			}
 
 		}
@@ -350,14 +345,11 @@ public class WebResourceInventoryManagerImpl implements
 				throws RepositoryException {
 			boolean skipSweep = false;
 
-			String path = null;
-			String eventTopic = event.getTopic();
-			path = (String) event.getProperty("path");
+			String path = (String) event.getProperty("path");
 			// We don't want to trigger a sweep if only the
 			// group or inventory was changed
-			if ( path.endsWith(WebResourceGroup.GROUP_HASH)||
-				 path.endsWith(WebResourceGroup.INVENTORY)|| 
-				 path.endsWith(".css") || path.endsWith(".js")) {
+			if (path.endsWith(WebResourceGroup.INVENTORY)
+					|| path.endsWith(".css") || path.endsWith(".js")) {
 				skipSweep = true;
 			} else {
 				if (!resourceNode.isNodeType(NodeType.NT_FILE)) {
@@ -456,12 +448,12 @@ public class WebResourceInventoryManagerImpl implements
 	public String getWebResourcePathLookup(String webResourceName) {
 		return webResourceNamePathMap.get(webResourceName);
 	}
-	
+
 	@Override
 	public Set<String> getAllWebResourceNames() {
 		return this.webResourceNamePathMap.keySet();
 	}
-	
+
 	@Override
 	public Collection<String> getAllWebResourcePaths() {
 		return this.webResourceNamePathMap.values();

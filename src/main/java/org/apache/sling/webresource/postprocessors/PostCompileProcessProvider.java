@@ -5,6 +5,7 @@ import java.io.InputStream;
 
 public interface PostCompileProcessProvider {
 
-    public InputStream applyPostCompileProcesses(Node sourceNode, InputStream compiledSource);
-    
+	public InputStream applyPostCompileProcesses(Node sourceNode,
+			InputStream compiledSource);
+
 }

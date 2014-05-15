@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,10 +22,7 @@ import org.apache.sling.webresource.WebResourceInventoryManager;
 import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.model.WebResourceGroup;
-import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleEvent;
-import org.osgi.framework.BundleListener;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.event.Event;
 import org.osgi.service.event.EventAdmin;
@@ -50,8 +48,6 @@ public class BackgroundCompilerHandler implements EventHandler {
 
 	private ExecutorService executorService;
 
-	private Bundle currentBundle;
-	
 	private BundleContext bundleContext;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
@@ -59,10 +55,8 @@ public class BackgroundCompilerHandler implements EventHandler {
 	protected void activate(ComponentContext context) {
 		bundleContext = context.getBundleContext();
 
-		this.currentBundle = bundleContext.getBundle();
-
 		this.executorService = Executors.newFixedThreadPool(4);
-		
+
 		compilePaths(new ArrayList<String>(
 				this.webResourceInventoryManager.getAllWebResourcePaths()));
 		String[] compileTopics = new String[] {
@@ -141,19 +135,14 @@ public class BackgroundCompilerHandler implements EventHandler {
 								WebResourceGroup.INVENTORY,
 								"webresource:Inventory");
 
-						for (String currentWebResourceType : webResourceGroupPaths
-								.keySet()) {
-							String[] webResourcePaths = webResourceGroupPaths
-									.get(currentWebResourceType).toArray(
-											new String[0]);
-							inventoryNode.setProperty(currentWebResourceType,
+						for (Entry<String, List<String>> currentWebResourceTypeEntry : webResourceGroupPaths
+								.entrySet()) {
+							String[] webResourcePaths = currentWebResourceTypeEntry
+									.getValue().toArray(new String[0]);
+							inventoryNode.setProperty(
+									currentWebResourceTypeEntry.getKey(),
 									webResourcePaths);
 						}
-						String groupHash = webResourceScriptCache
-								.calculateWebResourceGroupHash(jcrSession,
-										webResourceGroup.getName());
-						currentWebResourceGroup.setProperty(
-								WebResourceGroup.GROUP_HASH, groupHash);
 						jcrSession.save();
 						pendingWebRequestIt.remove();
 					} catch (InvalidQueryException e) {

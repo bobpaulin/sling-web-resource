@@ -5,7 +5,6 @@
 [webresource:WebResourceGroup] mixin
 - webresource:name (string)
 - webresource:cachePath (string)
-- webresource:groupHash (string)
 + inventory (webresource:Inventory)
 + compileOptions (webresource:CompileOptions)
 

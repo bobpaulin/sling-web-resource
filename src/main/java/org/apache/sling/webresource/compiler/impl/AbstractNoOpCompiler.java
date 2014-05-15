@@ -19,54 +19,54 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public abstract class AbstractNoOpCompiler {
-    private final Logger log = LoggerFactory.getLogger(getClass());
+	private final Logger log = LoggerFactory.getLogger(getClass());
 
-    /**
-     * 
-     * This should not be called on a CSS or JS file.
-     * 
-     * @param webResourceScript
-     * @return
-     * @throws WebResourceCompileException
-     */
-    public InputStream compile(InputStream webResourceScript)
-            throws WebResourceCompileException {
-        return compile(webResourceScript, null);
-    }
+	/**
+	 * 
+	 * This should not be called on a CSS or JS file.
+	 * 
+	 * @param webResourceScript
+	 * @return
+	 * @throws WebResourceCompileException
+	 */
+	public InputStream compile(InputStream webResourceScript)
+			throws WebResourceCompileException {
+		return compile(webResourceScript, null);
+	}
 
-    /**
-     * 
-     * This should not be called on a CSS or JS file.
-     * 
-     * @param webResourceScript
-     * @param compileOptions
-     * @return
-     * @throws WebResourceCompileException
-     */
-    public InputStream compile(InputStream webResourceScript,
-            Map<String, Object> compileOptions)
-            throws WebResourceCompileException {
-        throw new WebResourceCompileException(
-                "NoOp compile method should never be called");
-    }
+	/**
+	 * 
+	 * This should not be called on a CSS or JS file.
+	 * 
+	 * @param webResourceScript
+	 * @param compileOptions
+	 * @return
+	 * @throws WebResourceCompileException
+	 */
+	public InputStream compile(InputStream webResourceScript,
+			Map<String, Object> compileOptions)
+			throws WebResourceCompileException {
+		throw new WebResourceCompileException(
+				"NoOp compile method should never be called");
+	}
 
-    public String getCacheRoot() {
-        return "/";
-    }
+	public String getCacheRoot() {
+		return "/";
+	}
 
-    public boolean canCompileNode(Node sourceNode) {
-        String extension = null;
-        try {
+	public boolean canCompileNode(Node sourceNode) {
+		String extension = null;
+		try {
 
-            extension = JCRUtils.getNodeExtension(sourceNode);
+			extension = JCRUtils.getNodeExtension(sourceNode);
 
-        } catch (RepositoryException e) {
-            // Log Exception
-            log.info("Node Name can not be read.  Skipping node.");
-        }
+		} catch (RepositoryException e) {
+			// Log Exception
+			log.info("Node Name can not be read.  Skipping node.");
+		}
 
-        return compiledScriptExtension().equals(extension);
-    }
+		return compiledScriptExtension().equals(extension);
+	}
 
-    public abstract String compiledScriptExtension();
+	public abstract String compiledScriptExtension();
 }

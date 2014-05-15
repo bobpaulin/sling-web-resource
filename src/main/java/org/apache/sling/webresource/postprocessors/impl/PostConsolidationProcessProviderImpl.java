@@ -13,69 +13,64 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.webresource.postprocessors.PostConsolidationProcess;
 import org.apache.sling.webresource.postprocessors.PostConsolidationProcessProvider;
 
-@Component(label="Web Resource Post Consolidation Provider Service", immediate = true)
+@Component(label = "Web Resource Post Consolidation Provider Service", immediate = true)
 @Service
 @Reference(name = "WebResourcePostConsolidationProcessProvider", referenceInterface = PostConsolidationProcess.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 public class PostConsolidationProcessProviderImpl implements
-        PostConsolidationProcessProvider {
-    
-    private List<PostConsolidationProcess> webResourcePostConsolidationProcessList = new ArrayList<PostConsolidationProcess>();
+		PostConsolidationProcessProvider {
 
-    private PostConsolidationProcess[] webResourcePostConsolidationProcesses;
-    
-    @Override
-    public InputStream applyPostConsolidationProcesses(String path,
-            InputStream compiledSource) {
-        InputStream result = compiledSource;
-        
-        PostConsolidationProcess[] postConsolidationProcesses = getWebResourcePostConsolidationProcessProviders();
-        
-        if(postConsolidationProcesses != null)
-        {
-            for(PostConsolidationProcess currentProcess: postConsolidationProcesses)
-            {
-                if(currentProcess.shouldProcess(path))
-                {
-                    result = currentProcess.processCompiledStream(result);
-                }
-            }
-        }
-        return result;
-    }
-    
+	private List<PostConsolidationProcess> webResourcePostConsolidationProcessList = new ArrayList<PostConsolidationProcess>();
 
-    protected void bindWebResourcePostConsolidationProcessProvider(
-            PostConsolidationProcess webResourcePostConsolidationProcessService) {
-        synchronized (this.webResourcePostConsolidationProcessList) {
-            this.webResourcePostConsolidationProcessList.add(webResourcePostConsolidationProcessService);
-            this.webResourcePostConsolidationProcesses = null;
-        }
-    }
+	private PostConsolidationProcess[] webResourcePostConsolidationProcesses;
 
+	@Override
+	public InputStream applyPostConsolidationProcesses(String path,
+			InputStream compiledSource) {
+		InputStream result = compiledSource;
 
-    protected void unbindWebResourcePostConsolidationProcessProvider(
-            PostConsolidationProcess webResourcePostConsolidationProcessService) {
-        synchronized (this.webResourcePostConsolidationProcessList) {
-            this.webResourcePostConsolidationProcessList
-                    .remove(webResourcePostConsolidationProcessService);
-            this.webResourcePostConsolidationProcesses = null;
-        }
-    }
-    
+		PostConsolidationProcess[] postConsolidationProcesses = getWebResourcePostConsolidationProcessProviders();
 
-    private PostConsolidationProcess[] getWebResourcePostConsolidationProcessProviders() {
-        PostConsolidationProcess[] list = this.webResourcePostConsolidationProcesses;
+		if (postConsolidationProcesses != null) {
+			for (PostConsolidationProcess currentProcess : postConsolidationProcesses) {
+				if (currentProcess.shouldProcess(path)) {
+					result = currentProcess.processCompiledStream(result);
+				}
+			}
+		}
+		return result;
+	}
 
-        if (list == null) {
-            synchronized (this.webResourcePostConsolidationProcessList) {
-                this.webResourcePostConsolidationProcesses = this.webResourcePostConsolidationProcessList
-                        .toArray(new PostConsolidationProcess[this.webResourcePostConsolidationProcessList
-                                .size()]);
-                list = this.webResourcePostConsolidationProcesses;
-            }
-        }
+	protected void bindWebResourcePostConsolidationProcessProvider(
+			PostConsolidationProcess webResourcePostConsolidationProcessService) {
+		synchronized (this.webResourcePostConsolidationProcessList) {
+			this.webResourcePostConsolidationProcessList
+					.add(webResourcePostConsolidationProcessService);
+			this.webResourcePostConsolidationProcesses = null;
+		}
+	}
 
-        return list;
-    }
+	protected void unbindWebResourcePostConsolidationProcessProvider(
+			PostConsolidationProcess webResourcePostConsolidationProcessService) {
+		synchronized (this.webResourcePostConsolidationProcessList) {
+			this.webResourcePostConsolidationProcessList
+					.remove(webResourcePostConsolidationProcessService);
+			this.webResourcePostConsolidationProcesses = null;
+		}
+	}
+
+	private PostConsolidationProcess[] getWebResourcePostConsolidationProcessProviders() {
+		PostConsolidationProcess[] list = this.webResourcePostConsolidationProcesses;
+
+		if (list == null) {
+			synchronized (this.webResourcePostConsolidationProcessList) {
+				this.webResourcePostConsolidationProcesses = this.webResourcePostConsolidationProcessList
+						.toArray(new PostConsolidationProcess[this.webResourcePostConsolidationProcessList
+								.size()]);
+				list = this.webResourcePostConsolidationProcesses;
+			}
+		}
+
+		return list;
+	}
 
 }

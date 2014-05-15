@@ -40,8 +40,8 @@ public interface WebResourceScriptCache {
 
 	/**
 	 * 
-	 * Returns a map of compiled web resource types with 
-	 * paths to the compile scripts.
+	 * Returns a map of compiled web resource types with paths to the compile
+	 * scripts.
 	 * 
 	 * @param session
 	 * @param webResourceGroupName
@@ -51,17 +51,6 @@ public interface WebResourceScriptCache {
 	public Map<String, List<String>> getWebResourceCachedInventoryPaths(
 			Session session, String webResourceGroupName)
 			throws RepositoryException;
-
-	/**
-	 * 
-	 * Calculates an MD5 Hash in Base64 for a Web Resource Group
-	 * 
-	 * @param session
-	 * @param webResourceGroupName
-	 * @return
-	 */
-	public String calculateWebResourceGroupHash(Session session,
-			String webResourceGroupName);
 
 	/**
 	 * 

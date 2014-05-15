@@ -14,82 +14,80 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.webresource.postprocessors.PostCompileProcess;
 import org.apache.sling.webresource.postprocessors.PostCompileProcessProvider;
 
-@Component(label="Web Resource Post Compiler Process Provider Service", immediate = true)
+@Component(label = "Web Resource Post Compiler Process Provider Service", immediate = true)
 @Service
 @Reference(name = "WebResourcePostCompilerProcessProvider", referenceInterface = PostCompileProcess.class, cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, policy = ReferencePolicy.DYNAMIC)
 public class PostCompileProcessProviderImpl implements
-        PostCompileProcessProvider {
-    
-    private List<PostCompileProcess> webResourcePostCompileProcessList = new ArrayList<PostCompileProcess>();
+		PostCompileProcessProvider {
 
-    private PostCompileProcess[] webResourcePostCompileProcesses;
+	private List<PostCompileProcess> webResourcePostCompileProcessList = new ArrayList<PostCompileProcess>();
 
-    
-    @Override
-    public InputStream applyPostCompileProcesses(Node sourceNode, InputStream compiledSource) {
-        
-        InputStream result = compiledSource;
-        
-        PostCompileProcess[] postCompileProcesses = getWebResourcePostCompilerProcessProviders();
-        
-        if(postCompileProcesses != null)
-        {
-            for(PostCompileProcess currentProcess: postCompileProcesses)
-            {
-                if(currentProcess.shouldProcess(sourceNode))
-                {
-                    result = currentProcess.processCompiledStream(result);
-                }
-            }
-        }
-        return result;
-    }
-    
-    /**
-     * 
-     * 
-     * @param webResourcePostCompileProcessService
-     */
-    protected void bindWebResourcePostCompilerProcessProvider(
-            PostCompileProcess webResourcePostCompileProcessService) {
-        synchronized (this.webResourcePostCompileProcessList) {
-            this.webResourcePostCompileProcessList.add(webResourcePostCompileProcessService);
-            this.webResourcePostCompileProcesses = null;
-        }
-    }
+	private PostCompileProcess[] webResourcePostCompileProcesses;
 
-    /**
-     * 
-     * @param webResourcePostCompileProcessService
-     */
-    protected void unbindWebResourcePostCompilerProcessProvider(
-            PostCompileProcess webResourcePostCompileProcessService) {
-        synchronized (this.webResourcePostCompileProcessList) {
-            this.webResourcePostCompileProcessList
-                    .remove(webResourcePostCompileProcessService);
-            this.webResourcePostCompileProcesses = null;
-        }
-    }
-    
-    /**
-     * 
-     * Return list of available compilers
-     * 
-     * @return
-     */
-    private PostCompileProcess[] getWebResourcePostCompilerProcessProviders() {
-        PostCompileProcess[] list = this.webResourcePostCompileProcesses;
+	@Override
+	public InputStream applyPostCompileProcesses(Node sourceNode,
+			InputStream compiledSource) {
 
-        if (list == null) {
-            synchronized (this.webResourcePostCompileProcessList) {
-                this.webResourcePostCompileProcesses = this.webResourcePostCompileProcessList
-                        .toArray(new PostCompileProcess[this.webResourcePostCompileProcessList
-                                .size()]);
-                list = this.webResourcePostCompileProcesses;
-            }
-        }
+		InputStream result = compiledSource;
 
-        return list;
-    }
+		PostCompileProcess[] postCompileProcesses = getWebResourcePostCompilerProcessProviders();
+
+		if (postCompileProcesses != null) {
+			for (PostCompileProcess currentProcess : postCompileProcesses) {
+				if (currentProcess.shouldProcess(sourceNode)) {
+					result = currentProcess.processCompiledStream(result);
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * 
+	 * @param webResourcePostCompileProcessService
+	 */
+	protected void bindWebResourcePostCompilerProcessProvider(
+			PostCompileProcess webResourcePostCompileProcessService) {
+		synchronized (this.webResourcePostCompileProcessList) {
+			this.webResourcePostCompileProcessList
+					.add(webResourcePostCompileProcessService);
+			this.webResourcePostCompileProcesses = null;
+		}
+	}
+
+	/**
+	 * 
+	 * @param webResourcePostCompileProcessService
+	 */
+	protected void unbindWebResourcePostCompilerProcessProvider(
+			PostCompileProcess webResourcePostCompileProcessService) {
+		synchronized (this.webResourcePostCompileProcessList) {
+			this.webResourcePostCompileProcessList
+					.remove(webResourcePostCompileProcessService);
+			this.webResourcePostCompileProcesses = null;
+		}
+	}
+
+	/**
+	 * 
+	 * Return list of available compilers
+	 * 
+	 * @return
+	 */
+	private PostCompileProcess[] getWebResourcePostCompilerProcessProviders() {
+		PostCompileProcess[] list = this.webResourcePostCompileProcesses;
+
+		if (list == null) {
+			synchronized (this.webResourcePostCompileProcessList) {
+				this.webResourcePostCompileProcesses = this.webResourcePostCompileProcessList
+						.toArray(new PostCompileProcess[this.webResourcePostCompileProcessList
+								.size()]);
+				list = this.webResourcePostCompileProcesses;
+			}
+		}
+
+		return list;
+	}
 
 }

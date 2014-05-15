@@ -5,9 +5,9 @@ import java.io.InputStream;
 import javax.jcr.Node;
 
 public interface PostCompileProcess {
-    
-    public InputStream processCompiledStream(InputStream compiledSource);
-    
-    public boolean shouldProcess(Node sourceNode);
-    
+
+	public InputStream processCompiledStream(InputStream compiledSource);
+
+	public boolean shouldProcess(Node sourceNode);
+
 }

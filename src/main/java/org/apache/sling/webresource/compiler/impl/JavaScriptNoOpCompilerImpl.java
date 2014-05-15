@@ -13,12 +13,12 @@ import org.apache.sling.webresource.WebResourceScriptCompiler;
  * 
  */
 
-@Component(label="JavaScript No Op Compiler Service", immediate = true)
+@Component(label = "JavaScript No Op Compiler Service", immediate = true)
 @Service
 public class JavaScriptNoOpCompilerImpl extends AbstractNoOpCompiler implements
-        WebResourceScriptCompiler {
-    @Override
-    public String compiledScriptExtension() {
-        return "js";
-    }
+		WebResourceScriptCompiler {
+	@Override
+	public String compiledScriptExtension() {
+		return "js";
+	}
 }

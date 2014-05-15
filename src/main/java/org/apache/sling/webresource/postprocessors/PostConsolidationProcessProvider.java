@@ -4,6 +4,7 @@ import java.io.InputStream;
 
 public interface PostConsolidationProcessProvider {
 
-    public InputStream applyPostConsolidationProcesses(String path, InputStream compiledSource);
-    
+	public InputStream applyPostConsolidationProcesses(String path,
+			InputStream compiledSource);
+
 }

@@ -13,12 +13,12 @@ import org.apache.sling.webresource.WebResourceScriptCompiler;
  * 
  */
 
-@Component(label="CSS No Op Compiler Service", immediate = true)
+@Component(label = "CSS No Op Compiler Service", immediate = true)
 @Service
 public class CssNoOpCompilerImpl extends AbstractNoOpCompiler implements
-        WebResourceScriptCompiler {
-    @Override
-    public String compiledScriptExtension() {
-        return "css";
-    }
+		WebResourceScriptCompiler {
+	@Override
+	public String compiledScriptExtension() {
+		return "css";
+	}
 }
