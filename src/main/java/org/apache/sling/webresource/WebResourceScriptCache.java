@@ -1,12 +1,14 @@
 package org.apache.sling.webresource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.webresource.exception.WebResourceCompileException;
 import org.apache.sling.webresource.exception.WebResourceCompilerNotFoundException;
 
@@ -64,5 +66,7 @@ public interface WebResourceScriptCache {
 	public Map<String, List<String>> getCompiledWebResourceGroupPaths(
 			Session session, String webResourceGroupName, boolean consolidate)
 			throws WebResourceCompileException;
+	
+	public InputStream getGlobalWebResourceScripts() throws RepositoryException, LoginException;
 
 }

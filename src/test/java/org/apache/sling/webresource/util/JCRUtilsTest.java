@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.easymock.EasyMock.*;
 
 import javax.jcr.Node;
+import javax.jcr.nodetype.NodeType;
 
 import org.junit.Test;
 
@@ -103,10 +104,10 @@ public class JCRUtilsTest {
 		expect(mockNode.getNode("a")).andReturn(mockNode);
 
 		expect(mockNode.hasNode("new")).andReturn(Boolean.FALSE);
-		expect(mockNode.addNode("new")).andReturn(mockNode);
+		expect(mockNode.addNode("new", NodeType.NT_FOLDER)).andReturn(mockNode);
 
 		expect(mockNode.hasNode("path.js")).andReturn(Boolean.FALSE);
-		expect(mockNode.addNode("path.js")).andReturn(mockNode);
+		expect(mockNode.addNode("path.js", NodeType.NT_FILE)).andReturn(mockNode);
 
 		replay(mockNode);
 

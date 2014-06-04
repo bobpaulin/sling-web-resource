@@ -20,6 +20,7 @@ import org.apache.commons.lang.time.StopWatch;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.webresource.WebResourceInventoryManager;
@@ -505,5 +506,11 @@ public class WebResourceScriptCacheImpl implements WebResourceScriptCache {
 		}
 		return compiler;
 	}
-
+	
+	@Override
+	public InputStream getGlobalWebResourceScripts() throws RepositoryException, LoginException {
+		InputStream result = getClass().getClassLoader().getResourceAsStream("META-INF/webresource-overrides.js");
+		
+		return result;
+	}
 }

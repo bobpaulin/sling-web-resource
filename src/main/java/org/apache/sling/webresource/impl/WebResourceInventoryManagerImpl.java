@@ -315,8 +315,7 @@ public class WebResourceInventoryManagerImpl implements
 
 				} else if (eventTopic
 						.equals(SlingConstants.TOPIC_RESOURCE_REMOVED)) {
-					Node resourceNode = adminSession.getNode(path);
-					if (!ignoreInventoryEvent(event, resourceNode)) {
+					if (!ignoreInventoryEvent(event, null)) {
 						log.info("Remove Inventory for Web Resource Path: "
 								+ path);
 						String webResourceGroupName = removePathFromWebResourceExtensionInventory(path);
@@ -344,15 +343,16 @@ public class WebResourceInventoryManagerImpl implements
 				org.osgi.service.event.Event event, Node resourceNode)
 				throws RepositoryException {
 			boolean skipSweep = false;
-
+			
 			String path = (String) event.getProperty("path");
-			// We don't want to trigger a sweep if only the
-			// group or inventory was changed
-			if (path.endsWith(WebResourceGroup.INVENTORY)
+			// We don't want to trigger a sweep if only the inventory was changed
+			// Only if the inventory was deleted.
+			if ((path.endsWith(WebResourceGroup.INVENTORY) && 
+					!SlingConstants.TOPIC_RESOURCE_REMOVED.equals(event.getTopic()))
 					|| path.endsWith(".css") || path.endsWith(".js")) {
 				skipSweep = true;
 			} else {
-				if (!resourceNode.isNodeType(NodeType.NT_FILE)) {
+				if (resourceNode != null && !resourceNode.isNodeType(NodeType.NT_FILE)) {
 					skipSweep = true;
 				}
 			}

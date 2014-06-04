@@ -6,6 +6,11 @@ import java.io.InputStreamReader;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.jcr.RepositoryException;
+
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.webresource.WebResourceInventoryManager;
+import org.apache.sling.webresource.WebResourceScriptCache;
 import org.apache.sling.webresource.WebResourceScriptRunner;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -37,12 +42,20 @@ public class RhinoWebResourceScriptRunnerImpl implements
 
 	private InputStream globalScriptStream;
 
+	private WebResourceInventoryManager webResourceInventoryManager;
+
+	private WebResourceScriptCache webResourceScriptCache;
+
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	public RhinoWebResourceScriptRunnerImpl(String scriptCompilerName,
-			InputStream globalScriptStream) {
+			InputStream globalScriptStream,
+			WebResourceInventoryManager webResourceInventoryManager,
+			WebResourceScriptCache webResourceScriptCache) {
 		this.scriptCompilerName = scriptCompilerName;
 		this.globalScriptStream = globalScriptStream;
+		this.webResourceInventoryManager = webResourceInventoryManager;
+		this.webResourceScriptCache = webResourceScriptCache;
 		loadGlobalScripts();
 	}
 
@@ -102,11 +115,26 @@ public class RhinoWebResourceScriptRunnerImpl implements
 			rootScope
 					.put("logger", rootScope, Context.toObject(log, rootScope));
 
+			rootScope.put("webResourceInventoryManager", rootScope,
+					Context.toObject(webResourceInventoryManager, rootScope));
+
+			rhinoContext.evaluateReader(rootScope, new InputStreamReader(
+					webResourceScriptCache.getGlobalWebResourceScripts()),
+					"webResourceGlobalScript", 1, null);
+
 			rhinoContext.evaluateReader(rootScope, new InputStreamReader(
 					globalScriptStream), scriptCompilerName, 1, null);
 
 		} catch (IOException e) {
 			log.error("Error loading global scripts for " + scriptCompilerName,
+					e);
+		} catch (LoginException e) {
+			log.error(
+					"Error loading global scripts for webResourceGlobalScript",
+					e);
+		} catch (RepositoryException e) {
+			log.error(
+					"Error loading global scripts for webResourceGlobalScript",
 					e);
 		}
 	}

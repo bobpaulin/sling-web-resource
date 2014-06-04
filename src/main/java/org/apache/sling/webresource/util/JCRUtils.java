@@ -9,6 +9,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Binary;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeType;
 
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -42,8 +43,10 @@ public class JCRUtils {
 		Node newParent = null;
 		if (parent.hasNode(currentNodeName)) {
 			newParent = parent.getNode(currentNodeName);
+		} else if(pathPos < 0 && path.indexOf(".") > 0){
+			newParent = parent.addNode(currentNodeName, NodeType.NT_FILE);
 		} else {
-			newParent = parent.addNode(currentNodeName);
+			newParent = parent.addNode(currentNodeName, NodeType.NT_FOLDER);
 		}
 
 		if (pathPos < 0) {
